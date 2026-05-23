@@ -1,0 +1,6 @@
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: 'searchsurge'
+    static_configs:
+      - targets: ['searchsurge-master:9091', 'searchsurge-slave:9093']

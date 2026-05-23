@@ -134,18 +134,17 @@ func (e *Engine) runAggregator(ctx context.Context) {
 }
 
 func (e *Engine) buildSnapshot() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	type item struct {
-		Query string  `json:"query"`
-		Score float64 `json:"score"`
+	type entrySnap struct {
+		q     string
+		score float64
 	}
 
-	items := make([]item, 0, len(e.entries))
+	var snap []entrySnap
 	lambda := math.Log(2) / (e.cfg.HalfLifeMinutes * 60.0)
 	now := time.Now()
 
+	e.mu.Lock()
+	snap = make([]entrySnap, 0, len(e.entries))
 	for q, ent := range e.entries {
 		dt := now.Sub(ent.lastUpd).Seconds()
 		if dt < 0 {
@@ -157,18 +156,28 @@ func (e *Engine) buildSnapshot() {
 			delete(e.entries, q)
 			continue
 		}
-
 		ent.score = currentScore
 		ent.lastUpd = now
 
 		if currentScore > 0.1 {
-			items = append(items, item{Query: q, Score: math.Round(currentScore*100) / 100})
+			snap = append(snap, entrySnap{q: q, score: currentScore})
 		}
 	}
+	e.mu.Unlock()
 
-	if len(items) == 0 {
-		e.snapJSON.Store(&[]byte("[]"))
+	if len(snap) == 0 {
+		empty := []byte("[]")
+		e.snapJSON.Store(&empty)
 		return
+	}
+
+	type item struct {
+		Query string  `json:"query"`
+		Score float64 `json:"score"`
+	}
+	items := make([]item, len(snap))
+	for i, v := range snap {
+		items[i] = item{Query: v.q, Score: math.Round(v.score*100) / 100}
 	}
 
 	sort.Slice(items, func(i, j int) bool {
