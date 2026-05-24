@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package surge.v1;
+
+option go_package = "searchsurge/pb;surgpb";
+
+import "google/api/annotations.proto";
+
+service TrendService {
+  rpc StreamTop(StreamTopRequest) returns (stream TopSnapshot) {}
+
+  rpc GetTop(GetTopRequest) returns (GetTopResponse) {
+    option (google.api.http) = {
+      get: "/top"
+    };
+  }
+
+  rpc UpdateStoplist(StoplistRequest) returns (StoplistResponse) {
+    option (google.api.http) = {
+      post: "/stoplist"
+      body: "*"
+    };
+  }
+}
+
+message StreamTopRequest {}
+
+message TopSnapshot {
+  bytes json_payload = 1;
+  int64 generated_at_ms = 2;
+  int32 total_unique = 3;
+}
+
+message GetTopRequest {
+  int32 n = 1;
+}
+
+message GetTopResponse {
+  bytes json_payload = 1;
+}
+
+message StoplistRequest {
+  repeated string words = 1;
+}
+
+message StoplistResponse {}
