@@ -8,62 +8,66 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "searchsurge/proto"
+	pb "searchsurge/internal/pb"
 )
 
 type Slave struct {
-	pb.UnimplementedTrendServiceServer
-	client pb.TrendServiceClient
-	snap   atomic.Pointer[[]byte]
-	logger *slog.Logger
+	masterAddr string
+	client     pb.TrendServiceClient
+	snap       atomic.Pointer[[]byte]
+	logger     *slog.Logger
 }
 
-func NewSlave(masterAddr string, logger *slog.Logger) (*Slave, error) {
-	conn, err := grpc.Dial(masterAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-	return &Slave{
-		client: pb.NewTrendServiceClient(conn),
-		logger: logger,
-	}, nil
+func NewSlave(masterAddr string, logger *slog.Logger) *Slave {
+	return &Slave{masterAddr: masterAddr, logger: logger}
 }
 
-func (s *Slave) Start(ctx context.Context) {
-	go s.runStream(ctx)
+func (s *Slave) Run(ctx context.Context) {
+	go s.stream(ctx)
 }
 
-func (s *Slave) runStream(ctx context.Context) {
+func (s *Slave) stream(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			stream, err := s.client.StreamTop(ctx, &pb.StreamTopRequest{})
+			conn, err := grpc.DialContext(ctx, s.masterAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
-				s.logger.Warn("stream connect failed", "err", err)
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			for {
-				snap, err := stream.Recv()
-				if err != nil {
-					s.logger.Warn("stream recv failed", "err", err)
-					break
-				}
-				s.snap.Store(&snap.JsonPayload)
+			s.client = pb.NewTrendServiceClient(conn)
+			stream, err := s.client.StreamTop(ctx, &pb.StreamTopRequest{})
+			if err != nil {
+				conn.Close()
+				time.Sleep(2 * time.Second)
+				continue
 			}
+			s.consume(ctx, stream, conn)
 		}
 	}
 }
+
+func (s *Slave) consume(ctx context.Context, stream pb.TrendService_StreamTopClient, conn *grpc.ClientConn) {
+	defer conn.Close()
+	for {
+		snap, err := stream.Recv()
+		if err != nil {
+			return
+		}
+		s.snap.Store(&snap.JsonPayload)
+	}
+}
+
+func (s *Slave) Stop(ctx context.Context)             {}
 
 func (s *Slave) GetSnapshotJSON() []byte {
 	if b := s.snap.Load(); b != nil {
 		return *b
 	}
-	return []byte("[]")
+	
+	return []byte("[]") 
 }
 
-func (s *Slave) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
-	return &pb.GetTopResponse{JsonPayload: s.GetSnapshotJSON()}, nil
-}
+func (s *Slave) UpdateStopList([]string)               {}
