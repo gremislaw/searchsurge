@@ -19,18 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TrendService_StreamTop_FullMethodName      = "/surge.v1.TrendService/StreamTop"
 	TrendService_GetTop_FullMethodName         = "/surge.v1.TrendService/GetTop"
 	TrendService_UpdateStoplist_FullMethodName = "/surge.v1.TrendService/UpdateStoplist"
+	TrendService_StreamTop_FullMethodName      = "/surge.v1.TrendService/StreamTop"
 )
 
 // TrendServiceClient is the client API for TrendService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TrendServiceClient interface {
-	StreamTop(ctx context.Context, in *StreamTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TopSnapshot], error)
 	GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error)
 	UpdateStoplist(ctx context.Context, in *StoplistRequest, opts ...grpc.CallOption) (*StoplistResponse, error)
+	StreamTop(ctx context.Context, in *StreamTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TopSnapshot], error)
 }
 
 type trendServiceClient struct {
@@ -40,25 +40,6 @@ type trendServiceClient struct {
 func NewTrendServiceClient(cc grpc.ClientConnInterface) TrendServiceClient {
 	return &trendServiceClient{cc}
 }
-
-func (c *trendServiceClient) StreamTop(ctx context.Context, in *StreamTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TopSnapshot], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &TrendService_ServiceDesc.Streams[0], TrendService_StreamTop_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamTopRequest, TopSnapshot]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TrendService_StreamTopClient = grpc.ServerStreamingClient[TopSnapshot]
 
 func (c *trendServiceClient) GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -80,13 +61,32 @@ func (c *trendServiceClient) UpdateStoplist(ctx context.Context, in *StoplistReq
 	return out, nil
 }
 
+func (c *trendServiceClient) StreamTop(ctx context.Context, in *StreamTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TopSnapshot], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TrendService_ServiceDesc.Streams[0], TrendService_StreamTop_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamTopRequest, TopSnapshot]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TrendService_StreamTopClient = grpc.ServerStreamingClient[TopSnapshot]
+
 // TrendServiceServer is the server API for TrendService service.
 // All implementations must embed UnimplementedTrendServiceServer
 // for forward compatibility.
 type TrendServiceServer interface {
-	StreamTop(*StreamTopRequest, grpc.ServerStreamingServer[TopSnapshot]) error
 	GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error)
 	UpdateStoplist(context.Context, *StoplistRequest) (*StoplistResponse, error)
+	StreamTop(*StreamTopRequest, grpc.ServerStreamingServer[TopSnapshot]) error
 	mustEmbedUnimplementedTrendServiceServer()
 }
 
@@ -97,14 +97,14 @@ type TrendServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedTrendServiceServer struct{}
 
-func (UnimplementedTrendServiceServer) StreamTop(*StreamTopRequest, grpc.ServerStreamingServer[TopSnapshot]) error {
-	return status.Error(codes.Unimplemented, "method StreamTop not implemented")
-}
 func (UnimplementedTrendServiceServer) GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTop not implemented")
 }
 func (UnimplementedTrendServiceServer) UpdateStoplist(context.Context, *StoplistRequest) (*StoplistResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateStoplist not implemented")
+}
+func (UnimplementedTrendServiceServer) StreamTop(*StreamTopRequest, grpc.ServerStreamingServer[TopSnapshot]) error {
+	return status.Error(codes.Unimplemented, "method StreamTop not implemented")
 }
 func (UnimplementedTrendServiceServer) mustEmbedUnimplementedTrendServiceServer() {}
 func (UnimplementedTrendServiceServer) testEmbeddedByValue()                      {}
@@ -126,17 +126,6 @@ func RegisterTrendServiceServer(s grpc.ServiceRegistrar, srv TrendServiceServer)
 	}
 	s.RegisterService(&TrendService_ServiceDesc, srv)
 }
-
-func _TrendService_StreamTop_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamTopRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(TrendServiceServer).StreamTop(m, &grpc.GenericServerStream[StreamTopRequest, TopSnapshot]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TrendService_StreamTopServer = grpc.ServerStreamingServer[TopSnapshot]
 
 func _TrendService_GetTop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetTopRequest)
@@ -173,6 +162,17 @@ func _TrendService_UpdateStoplist_Handler(srv interface{}, ctx context.Context, 
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _TrendService_StreamTop_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamTopRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TrendServiceServer).StreamTop(m, &grpc.GenericServerStream[StreamTopRequest, TopSnapshot]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TrendService_StreamTopServer = grpc.ServerStreamingServer[TopSnapshot]
 
 // TrendService_ServiceDesc is the grpc.ServiceDesc for TrendService service.
 // It's only intended for direct use with grpc.RegisterService,

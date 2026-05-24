@@ -6,14 +6,9 @@ scrape_configs:
   - job_name: 'searchsurge-master'
     static_configs:
       - targets: ['searchsurge-master:9091']
-    labels:
-      role: 'master'
+        labels: { role: 'master' }
 
   - job_name: 'searchsurge-slaves'
-    dns_sd_configs:
-      - names: ['tasks.searchsurge-slave']
-        type: 'A'
-        port: 9091
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
+    static_configs:
+      - targets: ['searchsurge-slave:9091']
+        labels: { role: 'slave' }

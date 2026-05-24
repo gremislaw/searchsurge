@@ -13,7 +13,6 @@ type Config struct {
 	GRPCAddr         string
 	BrokerURL        string
 	BrokerSubject    string
-	BrokerGroup      string
 	HalfLifeMinutes  float64
 	SnapshotInterval time.Duration
 	MaxSnapshotSize  int
@@ -30,7 +29,6 @@ func Load() Config {
 		GRPCAddr:         requireEnv("GRPC_ADDR"),
 		BrokerURL:        requireEnv("BROKER_URL"),
 		BrokerSubject:    requireEnv("BROKER_SUBJECT"),
-		BrokerGroup:      requireEnv("BROKER_GROUP"),
 		MasterAddr:       os.Getenv("MASTER_ADDR"),
 		HalfLifeMinutes:  requireFloat("HALF_LIFE_MIN"),
 		SnapshotInterval: requireDurationMs("SNAPSHOT_INTERVAL_MS"),

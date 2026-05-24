@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"google.golang.org/grpc"
@@ -10,6 +11,11 @@ import (
 
 	"searchsurge/internal/api"
 	pb "searchsurge/internal/pb/proto"
+)
+
+const (
+	MAXLIMIT     = 2000
+	DEFAULTLIMIT = 5
 )
 
 type Server struct {
@@ -24,7 +30,29 @@ func NewServer(provider api.TrendProvider) *Server {
 func (s *Server) Register(grpcSrv *grpc.Server) { pb.RegisterTrendServiceServer(grpcSrv, s) }
 
 func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
-	return &pb.GetTopResponse{JsonPayload: s.provider.GetSnapshotJSON()}, nil
+	rawJSON := s.provider.GetSnapshotJSON()
+	if string(rawJSON) == "[]" {
+		return &pb.GetTopResponse{}, nil
+	}
+
+	var items []*pb.TrendItem
+	if err := json.Unmarshal(rawJSON, &items); err != nil {
+		return nil, status.Errorf(codes.Internal, "snapshot parse error: %v", err)
+	}
+
+	limit := int(req.GetN())
+	if limit <= 0 {
+		limit = DEFAULTLIMIT
+	}
+	if limit > maxLimit {
+		limit = MAXLIMIT
+	}
+
+	if len(items) > limit {
+		items = items[:limit]
+	}
+
+	return &pb.GetTopResponse{Items: items}, nil
 }
 
 func (s *Server) UpdateStoplist(ctx context.Context, req *pb.StoplistRequest) (*pb.StoplistResponse, error) {

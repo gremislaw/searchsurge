@@ -22,102 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type StreamTopRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StreamTopRequest) Reset() {
-	*x = StreamTopRequest{}
-	mi := &file_proto_api_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StreamTopRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StreamTopRequest) ProtoMessage() {}
-
-func (x *StreamTopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StreamTopRequest.ProtoReflect.Descriptor instead.
-func (*StreamTopRequest) Descriptor() ([]byte, []int) {
-	return file_proto_api_proto_rawDescGZIP(), []int{0}
-}
-
-type TopSnapshot struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JsonPayload   []byte                 `protobuf:"bytes,1,opt,name=json_payload,json=jsonPayload,proto3" json:"json_payload,omitempty"`
-	GeneratedAtMs int64                  `protobuf:"varint,2,opt,name=generated_at_ms,json=generatedAtMs,proto3" json:"generated_at_ms,omitempty"`
-	TotalUnique   int32                  `protobuf:"varint,3,opt,name=total_unique,json=totalUnique,proto3" json:"total_unique,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TopSnapshot) Reset() {
-	*x = TopSnapshot{}
-	mi := &file_proto_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TopSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TopSnapshot) ProtoMessage() {}
-
-func (x *TopSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TopSnapshot.ProtoReflect.Descriptor instead.
-func (*TopSnapshot) Descriptor() ([]byte, []int) {
-	return file_proto_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *TopSnapshot) GetJsonPayload() []byte {
-	if x != nil {
-		return x.JsonPayload
-	}
-	return nil
-}
-
-func (x *TopSnapshot) GetGeneratedAtMs() int64 {
-	if x != nil {
-		return x.GeneratedAtMs
-	}
-	return 0
-}
-
-func (x *TopSnapshot) GetTotalUnique() int32 {
-	if x != nil {
-		return x.TotalUnique
-	}
-	return 0
-}
-
 type GetTopRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	N             int32                  `protobuf:"varint,1,opt,name=n,proto3" json:"n,omitempty"`
@@ -127,7 +31,7 @@ type GetTopRequest struct {
 
 func (x *GetTopRequest) Reset() {
 	*x = GetTopRequest{}
-	mi := &file_proto_api_proto_msgTypes[2]
+	mi := &file_proto_api_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -139,7 +43,7 @@ func (x *GetTopRequest) String() string {
 func (*GetTopRequest) ProtoMessage() {}
 
 func (x *GetTopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[2]
+	mi := &file_proto_api_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +56,7 @@ func (x *GetTopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTopRequest.ProtoReflect.Descriptor instead.
 func (*GetTopRequest) Descriptor() ([]byte, []int) {
-	return file_proto_api_proto_rawDescGZIP(), []int{2}
+	return file_proto_api_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetTopRequest) GetN() int32 {
@@ -164,14 +68,14 @@ func (x *GetTopRequest) GetN() int32 {
 
 type GetTopResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	JsonPayload   []byte                 `protobuf:"bytes,1,opt,name=json_payload,json=jsonPayload,proto3" json:"json_payload,omitempty"`
+	Items         []*TrendItem           `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetTopResponse) Reset() {
 	*x = GetTopResponse{}
-	mi := &file_proto_api_proto_msgTypes[3]
+	mi := &file_proto_api_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +87,7 @@ func (x *GetTopResponse) String() string {
 func (*GetTopResponse) ProtoMessage() {}
 
 func (x *GetTopResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[3]
+	mi := &file_proto_api_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,14 +100,66 @@ func (x *GetTopResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTopResponse.ProtoReflect.Descriptor instead.
 func (*GetTopResponse) Descriptor() ([]byte, []int) {
-	return file_proto_api_proto_rawDescGZIP(), []int{3}
+	return file_proto_api_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetTopResponse) GetJsonPayload() []byte {
+func (x *GetTopResponse) GetItems() []*TrendItem {
 	if x != nil {
-		return x.JsonPayload
+		return x.Items
 	}
 	return nil
+}
+
+type TrendItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Score         float64                `protobuf:"fixed64,2,opt,name=score,proto3" json:"score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrendItem) Reset() {
+	*x = TrendItem{}
+	mi := &file_proto_api_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrendItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrendItem) ProtoMessage() {}
+
+func (x *TrendItem) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_api_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrendItem.ProtoReflect.Descriptor instead.
+func (*TrendItem) Descriptor() ([]byte, []int) {
+	return file_proto_api_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TrendItem) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *TrendItem) GetScore() float64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
 }
 
 type StoplistRequest struct {
@@ -215,7 +171,7 @@ type StoplistRequest struct {
 
 func (x *StoplistRequest) Reset() {
 	*x = StoplistRequest{}
-	mi := &file_proto_api_proto_msgTypes[4]
+	mi := &file_proto_api_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -227,7 +183,7 @@ func (x *StoplistRequest) String() string {
 func (*StoplistRequest) ProtoMessage() {}
 
 func (x *StoplistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[4]
+	mi := &file_proto_api_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -240,7 +196,7 @@ func (x *StoplistRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoplistRequest.ProtoReflect.Descriptor instead.
 func (*StoplistRequest) Descriptor() ([]byte, []int) {
-	return file_proto_api_proto_rawDescGZIP(), []int{4}
+	return file_proto_api_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StoplistRequest) GetWords() []string {
@@ -258,7 +214,7 @@ type StoplistResponse struct {
 
 func (x *StoplistResponse) Reset() {
 	*x = StoplistResponse{}
-	mi := &file_proto_api_proto_msgTypes[5]
+	mi := &file_proto_api_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -270,7 +226,7 @@ func (x *StoplistResponse) String() string {
 func (*StoplistResponse) ProtoMessage() {}
 
 func (x *StoplistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_api_proto_msgTypes[5]
+	mi := &file_proto_api_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,30 +239,120 @@ func (x *StoplistResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoplistResponse.ProtoReflect.Descriptor instead.
 func (*StoplistResponse) Descriptor() ([]byte, []int) {
+	return file_proto_api_proto_rawDescGZIP(), []int{4}
+}
+
+type StreamTopRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamTopRequest) Reset() {
+	*x = StreamTopRequest{}
+	mi := &file_proto_api_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamTopRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamTopRequest) ProtoMessage() {}
+
+func (x *StreamTopRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_api_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamTopRequest.ProtoReflect.Descriptor instead.
+func (*StreamTopRequest) Descriptor() ([]byte, []int) {
 	return file_proto_api_proto_rawDescGZIP(), []int{5}
+}
+
+type TopSnapshot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JsonPayload   []byte                 `protobuf:"bytes,1,opt,name=json_payload,json=jsonPayload,proto3" json:"json_payload,omitempty"`
+	GeneratedAtMs int64                  `protobuf:"varint,2,opt,name=generated_at_ms,json=generatedAtMs,proto3" json:"generated_at_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TopSnapshot) Reset() {
+	*x = TopSnapshot{}
+	mi := &file_proto_api_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TopSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TopSnapshot) ProtoMessage() {}
+
+func (x *TopSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_api_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TopSnapshot.ProtoReflect.Descriptor instead.
+func (*TopSnapshot) Descriptor() ([]byte, []int) {
+	return file_proto_api_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TopSnapshot) GetJsonPayload() []byte {
+	if x != nil {
+		return x.JsonPayload
+	}
+	return nil
+}
+
+func (x *TopSnapshot) GetGeneratedAtMs() int64 {
+	if x != nil {
+		return x.GeneratedAtMs
+	}
+	return 0
 }
 
 var File_proto_api_proto protoreflect.FileDescriptor
 
 const file_proto_api_proto_rawDesc = "" +
 	"\n" +
-	"\x0fproto/api.proto\x12\bsurge.v1\x1a\x1cgoogle/api/annotations.proto\"\x12\n" +
-	"\x10StreamTopRequest\"{\n" +
-	"\vTopSnapshot\x12!\n" +
-	"\fjson_payload\x18\x01 \x01(\fR\vjsonPayload\x12&\n" +
-	"\x0fgenerated_at_ms\x18\x02 \x01(\x03R\rgeneratedAtMs\x12!\n" +
-	"\ftotal_unique\x18\x03 \x01(\x05R\vtotalUnique\"\x1d\n" +
+	"\x0fproto/api.proto\x12\bsurge.v1\x1a\x1cgoogle/api/annotations.proto\"\x1d\n" +
 	"\rGetTopRequest\x12\f\n" +
-	"\x01n\x18\x01 \x01(\x05R\x01n\"3\n" +
-	"\x0eGetTopResponse\x12!\n" +
-	"\fjson_payload\x18\x01 \x01(\fR\vjsonPayload\"'\n" +
+	"\x01n\x18\x01 \x01(\x05R\x01n\";\n" +
+	"\x0eGetTopResponse\x12)\n" +
+	"\x05items\x18\x01 \x03(\v2\x13.surge.v1.TrendItemR\x05items\"7\n" +
+	"\tTrendItem\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05score\x18\x02 \x01(\x01R\x05score\"'\n" +
 	"\x0fStoplistRequest\x12\x14\n" +
 	"\x05words\x18\x01 \x03(\tR\x05words\"\x12\n" +
-	"\x10StoplistResponse2\xfc\x01\n" +
-	"\fTrendService\x12B\n" +
-	"\tStreamTop\x12\x1a.surge.v1.StreamTopRequest\x1a\x15.surge.v1.TopSnapshot\"\x000\x01\x12I\n" +
+	"\x10StoplistResponse\"\x12\n" +
+	"\x10StreamTopRequest\"X\n" +
+	"\vTopSnapshot\x12!\n" +
+	"\fjson_payload\x18\x01 \x01(\fR\vjsonPayload\x12&\n" +
+	"\x0fgenerated_at_ms\x18\x02 \x01(\x03R\rgeneratedAtMs2\xfc\x01\n" +
+	"\fTrendService\x12I\n" +
 	"\x06GetTop\x12\x17.surge.v1.GetTopRequest\x1a\x18.surge.v1.GetTopResponse\"\f\x82\xd3\xe4\x93\x02\x06\x12\x04/top\x12]\n" +
-	"\x0eUpdateStoplist\x12\x19.surge.v1.StoplistRequest\x1a\x1a.surge.v1.StoplistResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/stoplistB\x17Z\x15searchsurge/pb;surgpbb\x06proto3"
+	"\x0eUpdateStoplist\x12\x19.surge.v1.StoplistRequest\x1a\x1a.surge.v1.StoplistResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/stoplist\x12B\n" +
+	"\tStreamTop\x12\x1a.surge.v1.StreamTopRequest\x1a\x15.surge.v1.TopSnapshot\"\x000\x01B Z\x1esearchsurge/internal/pb;surgpbb\x06proto3"
 
 var (
 	file_proto_api_proto_rawDescOnce sync.Once
@@ -320,27 +366,29 @@ func file_proto_api_proto_rawDescGZIP() []byte {
 	return file_proto_api_proto_rawDescData
 }
 
-var file_proto_api_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_api_proto_goTypes = []any{
-	(*StreamTopRequest)(nil), // 0: surge.v1.StreamTopRequest
-	(*TopSnapshot)(nil),      // 1: surge.v1.TopSnapshot
-	(*GetTopRequest)(nil),    // 2: surge.v1.GetTopRequest
-	(*GetTopResponse)(nil),   // 3: surge.v1.GetTopResponse
-	(*StoplistRequest)(nil),  // 4: surge.v1.StoplistRequest
-	(*StoplistResponse)(nil), // 5: surge.v1.StoplistResponse
+	(*GetTopRequest)(nil),    // 0: surge.v1.GetTopRequest
+	(*GetTopResponse)(nil),   // 1: surge.v1.GetTopResponse
+	(*TrendItem)(nil),        // 2: surge.v1.TrendItem
+	(*StoplistRequest)(nil),  // 3: surge.v1.StoplistRequest
+	(*StoplistResponse)(nil), // 4: surge.v1.StoplistResponse
+	(*StreamTopRequest)(nil), // 5: surge.v1.StreamTopRequest
+	(*TopSnapshot)(nil),      // 6: surge.v1.TopSnapshot
 }
 var file_proto_api_proto_depIdxs = []int32{
-	0, // 0: surge.v1.TrendService.StreamTop:input_type -> surge.v1.StreamTopRequest
-	2, // 1: surge.v1.TrendService.GetTop:input_type -> surge.v1.GetTopRequest
-	4, // 2: surge.v1.TrendService.UpdateStoplist:input_type -> surge.v1.StoplistRequest
-	1, // 3: surge.v1.TrendService.StreamTop:output_type -> surge.v1.TopSnapshot
-	3, // 4: surge.v1.TrendService.GetTop:output_type -> surge.v1.GetTopResponse
-	5, // 5: surge.v1.TrendService.UpdateStoplist:output_type -> surge.v1.StoplistResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: surge.v1.GetTopResponse.items:type_name -> surge.v1.TrendItem
+	0, // 1: surge.v1.TrendService.GetTop:input_type -> surge.v1.GetTopRequest
+	3, // 2: surge.v1.TrendService.UpdateStoplist:input_type -> surge.v1.StoplistRequest
+	5, // 3: surge.v1.TrendService.StreamTop:input_type -> surge.v1.StreamTopRequest
+	1, // 4: surge.v1.TrendService.GetTop:output_type -> surge.v1.GetTopResponse
+	4, // 5: surge.v1.TrendService.UpdateStoplist:output_type -> surge.v1.StoplistResponse
+	6, // 6: surge.v1.TrendService.StreamTop:output_type -> surge.v1.TopSnapshot
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_api_proto_init() }
@@ -354,7 +402,7 @@ func file_proto_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_api_proto_rawDesc), len(file_proto_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

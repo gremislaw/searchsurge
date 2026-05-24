@@ -1,14 +1,11 @@
 syntax = "proto3";
-
 package surge.v1;
 
-option go_package = "searchsurge/pb;surgpb";
+option go_package = "searchsurge/internal/pb;surgpb";
 
 import "google/api/annotations.proto";
 
 service TrendService {
-  rpc StreamTop(StreamTopRequest) returns (stream TopSnapshot) {}
-
   rpc GetTop(GetTopRequest) returns (GetTopResponse) {
     option (google.api.http) = {
       get: "/top"
@@ -21,14 +18,8 @@ service TrendService {
       body: "*"
     };
   }
-}
 
-message StreamTopRequest {}
-
-message TopSnapshot {
-  bytes json_payload = 1;
-  int64 generated_at_ms = 2;
-  int32 total_unique = 3;
+  rpc StreamTop(StreamTopRequest) returns (stream TopSnapshot) {}
 }
 
 message GetTopRequest {
@@ -36,7 +27,12 @@ message GetTopRequest {
 }
 
 message GetTopResponse {
-  bytes json_payload = 1;
+  repeated TrendItem items = 1;
+}
+
+message TrendItem {
+  string query = 1;
+  double score = 2;
 }
 
 message StoplistRequest {
@@ -44,3 +40,9 @@ message StoplistRequest {
 }
 
 message StoplistResponse {}
+
+message StreamTopRequest {}
+message TopSnapshot {
+  bytes json_payload = 1;
+  int64 generated_at_ms = 2;
+}
