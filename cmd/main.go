@@ -51,6 +51,7 @@ func main() {
 	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, droppedMetric)
 
 	var provider api.TrendProvider
+	var busMetrics databus.MetricsObserver = mainMetrics{}
 
 	if cfg.Role == "master" {
 		busCfg := databus.Config{
@@ -61,7 +62,7 @@ func main() {
 			IdempotencyTTL: 5 * time.Minute,
 			AckWait:        30 * time.Second,
 		}
-		master := replicator.NewMaster(engine, busCfg, logger)
+		master := replicator.NewMaster(engine, busCfg, logger, busMetrics)
 		master.Run(ctx)
 		provider = master
 		logger.Info("node started as master")
@@ -156,4 +157,14 @@ func initLogger(level string) *slog.Logger {
 	default: lvl = slog.LevelInfo
 	}
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl}))
+}
+
+type mainMetrics struct{}
+
+func (m mainMetrics) EventProcessed(status string) {
+	metrics.EventsProcessedTotal.WithLabelValues(status).Inc()
+}
+
+func (m mainMetrics) IngestDropped(reason string) {
+	metrics.IngestDroppedTotal.WithLabelValues(reason).Inc()
 }

@@ -13,10 +13,10 @@ type Master struct {
 	bus    *databus.DataBus
 }
 
-func NewMaster(engine surgecore.Engine, busCfg databus.Config, logger *slog.Logger) *Master {
+func NewMaster(engine surgecore.Engine, busCfg databus.Config, logger *slog.Logger, metrics databus.MetricsObserver) *Master {
 	return &Master{
 		engine: engine,
-		bus:    databus.New(busCfg, engine, logger),
+		bus:    databus.New(busCfg, engine, logger, metrics),
 	}
 }
 
