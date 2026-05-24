@@ -14,5 +14,5 @@ func NewRouter(engine surgecore.Engine) http.Handler {
 	mux.HandleFunc("/stoplist", h.Stoplist)
 	mux.HandleFunc("/health", h.Health)
 
-	return mux
+	return LoggingMiddleware(mux)
 }

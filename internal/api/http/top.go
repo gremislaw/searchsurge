@@ -5,12 +5,19 @@ import (
 	"strconv"
 )
 
+onst (
+	DefaultTopLimit = 5
+	
+	// MaxTopLimit жёсткий кап для защиты от abuse и сохранения P99 < 20ms
+	MaxTopLimit = 2000
+)
+
 func (h *Handlers) Top(w http.ResponseWriter, r *http.Request) {
-	n := 10
+	n := DefaultTopLimit
 	if v := r.URL.Query().Get("n"); v != "" {
 		if i, err := strconv.Atoi(v); err == nil && i > 0 {
-			if i > 2000 {
-				i = 2000
+			if i > MaxTopLimit {
+				i = MaxTopLimit
 			}
 			n = i
 		}
