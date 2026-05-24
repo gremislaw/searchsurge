@@ -25,7 +25,7 @@ type entry struct {
 	lastUpd time.Time
 }
 
-type Engine struct {
+type engine struct {
 	cfg      Config
 	logger   *slog.Logger
 	mu       sync.Mutex
@@ -46,15 +46,15 @@ type Engine interface {
 	Stop(ctx context.Context)
 }
 
-func New(cfg Config, logger *slog.Logger) *Engine {
-	return &Engine{
+func New(cfg Config, logger *slog.Logger) Engine {
+	return &engine{
 		cfg:     cfg,
 		logger:  logger,
 		entries: make(map[string]*entry, 4096),
 	}
 }
 
-func (e *Engine) Run(ctx context.Context) {
+func (e *engine) Run(ctx context.Context) {
 	e.ctx, e.cancel = context.WithCancel(ctx)
 	e.wg.Add(1)
 	go func() {
@@ -63,7 +63,7 @@ func (e *Engine) Run(ctx context.Context) {
 	}()
 }
 
-func (e *Engine) Stop(ctx context.Context) {
+func (e *engine) Stop(ctx context.Context) {
 	e.cancel()
 	done := make(chan struct{})
 	go func() { e.wg.Wait(); close(done) }()
@@ -73,7 +73,7 @@ func (e *Engine) Stop(ctx context.Context) {
 	}
 }
 
-func (e *Engine) Ingest(query string) bool {
+func (e *engine) Ingest(query string) bool {
 	q := strings.TrimSpace(strings.ToLower(query))
 	if q == "" || e.isStopWord(q) {
 		return false
@@ -103,7 +103,7 @@ func (e *Engine) Ingest(query string) bool {
 	return true
 }
 
-func (e *Engine) UpdateStopList(words []string) {
+func (e *engine) UpdateStopList(words []string) {
 	m := make(map[string]struct{}, len(words))
 	for _, w := range words {
 		m[strings.TrimSpace(strings.ToLower(w))] = struct{}{}
@@ -111,7 +111,7 @@ func (e *Engine) UpdateStopList(words []string) {
 	e.stopList.Store(&m)
 }
 
-func (e *Engine) isStopWord(q string) bool {
+func (e *engine) isStopWord(q string) bool {
 	m := e.stopList.Load()
 	if m == nil {
 		return false
@@ -120,14 +120,14 @@ func (e *Engine) isStopWord(q string) bool {
 	return ok
 }
 
-func (e *Engine) GetSnapshotJSON() []byte {
+func (e *engine) GetSnapshotJSON() []byte {
 	if b := e.snapJSON.Load(); b != nil {
 		return *b
 	}
 	return []byte("[]")
 }
 
-func (e *Engine) runAggregator(ctx context.Context) {
+func (e *engine) runAggregator(ctx context.Context) {
 	ticker := time.NewTicker(e.cfg.SnapshotInterval)
 	defer ticker.Stop()
 	for {
@@ -141,7 +141,7 @@ func (e *Engine) runAggregator(ctx context.Context) {
 	}
 }
 
-func (e *Engine) buildSnapshot() {
+func (e *engine) buildSnapshot() {
 	type entrySnap struct {
 		q     string
 		score float64

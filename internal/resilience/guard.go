@@ -11,6 +11,7 @@ type LatencyGuard struct {
 	lastLatency time.Duration
 	dropRate    float64
 	threshold   time.Duration
+	dropped     prometheus.Counter
 }
 
 func NewLatencyGuard(threshold time.Duration) *LatencyGuard {
