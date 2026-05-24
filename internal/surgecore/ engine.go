@@ -38,6 +38,14 @@ type Engine struct {
 	wg     sync.WaitGroup
 }
 
+type Engine interface {
+	Ingest(query string) bool
+	GetSnapshotJSON() []byte
+	UpdateStopList(words []string)
+	Run(ctx context.Context)
+	Stop(ctx context.Context)
+}
+
 func New(cfg Config, logger *slog.Logger) *Engine {
 	return &Engine{
 		cfg:     cfg,
@@ -196,13 +204,4 @@ func (e *Engine) buildSnapshot() {
 		return
 	}
 	e.snapJSON.Store(&raw)
-}
-
-
-type EngineInterface interface {
-	Ingest(query string) bool
-	GetSnapshotJSON() []byte
-	UpdateStopList(words []string)
-	Run(ctx context.Context)
-	Stop(ctx context.Context)
 }

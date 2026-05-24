@@ -30,13 +30,13 @@ type Event struct {
 
 type DataBus struct {
 	cfg      Config
-	engine   *surgecore.Engine
+	engine   surgecore.Engine
 	logger   *slog.Logger
 	mu       sync.Mutex
 	seenKeys map[string]time.Time
 }
 
-func New(cfg Config, engine *surgecore.Engine, logger *slog.Logger) *DataBus {
+func New(cfg Config, engine surgecore.Engine, logger *slog.Logger) *DataBus {
 	return &DataBus{
 		cfg:      cfg,
 		engine:   engine,

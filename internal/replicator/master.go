@@ -11,11 +11,11 @@ import (
 
 type Master struct {
 	pb.UnimplementedTrendServiceServer
-	engine *surgecore.Engine
+	engine surgecore.Engine
 	logger *slog.Logger
 }
 
-func NewMaster(engine *surgecore.Engine, logger *slog.Logger) *Master {
+func NewMaster(engine surgecore.Engine, logger *slog.Logger) *Master {
 	return &Master{engine: engine, logger: logger}
 }
 
