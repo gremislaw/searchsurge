@@ -197,3 +197,12 @@ func (e *Engine) buildSnapshot() {
 	}
 	e.snapJSON.Store(&raw)
 }
+
+
+type EngineInterface interface {
+	Ingest(query string) bool
+	GetSnapshotJSON() []byte
+	UpdateStopList(words []string)
+	Run(ctx context.Context)
+	Stop(ctx context.Context)
+}
