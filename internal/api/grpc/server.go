@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "searchsurge/internal/pb"
 	"searchsurge/internal/api"
+	pb "searchsurge/internal/pb"
 )
 
 type Server struct {
@@ -28,7 +28,9 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 }
 
 func (s *Server) UpdateStoplist(ctx context.Context, req *pb.StoplistRequest) (*pb.StoplistResponse, error) {
-	if len(req.Words) == 0 { return nil, status.Error(codes.InvalidArgument, "empty words") }
+	if len(req.Words) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "empty words")
+	}
 	s.provider.UpdateStopList(req.Words)
 	return &pb.StoplistResponse{}, nil
 }
@@ -39,10 +41,13 @@ func (s *Server) StreamTop(req *pb.StreamTopRequest, stream pb.TrendService_Stre
 	ctx := stream.Context()
 	for {
 		select {
-		case <-ctx.Done(): return ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-ticker.C:
 			snap := s.provider.GetSnapshotJSON()
-			if len(snap) == 0 || string(snap) == "[]" { continue }
+			if len(snap) == 0 || string(snap) == "[]" {
+				continue
+			}
 			if err := stream.Send(&pb.TopSnapshot{JsonPayload: snap, GeneratedAtMs: time.Now().UnixMilli()}); err != nil {
 				return status.Errorf(codes.Unavailable, "stream failed: %v", err)
 			}

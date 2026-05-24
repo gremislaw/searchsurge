@@ -60,14 +60,14 @@ func (s *Slave) consume(ctx context.Context, stream pb.TrendService_StreamTopCli
 	}
 }
 
-func (s *Slave) Stop(ctx context.Context)             {}
+func (s *Slave) Stop(ctx context.Context) {}
 
 func (s *Slave) GetSnapshotJSON() []byte {
 	if b := s.snap.Load(); b != nil {
 		return *b
 	}
-	
-	return []byte("[]") 
+
+	return []byte("[]")
 }
 
-func (s *Slave) UpdateStopList([]string)               {}
+func (s *Slave) UpdateStopList([]string) {}

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -98,7 +98,7 @@ func main() {
 	// gRPC-Gateway
 	gwMux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	
+
 	if err := pb.RegisterTrendServiceHandlerFromEndpoint(ctx, gwMux, cfg.GRPCAddr, opts); err != nil {
 		logger.Error("gateway registration failed", "err", err)
 		os.Exit(1)
@@ -127,7 +127,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
-	
+
 	go func() {
 		logger.Info("Prometheus metrics started", "addr", cfg.PrometheusAddr)
 		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -151,10 +151,14 @@ func main() {
 func initLogger(level string) *slog.Logger {
 	var lvl slog.Level
 	switch level {
-	case "debug": lvl = slog.LevelDebug
-	case "warn": lvl = slog.LevelWarn
-	case "error": lvl = slog.LevelError
-	default: lvl = slog.LevelInfo
+	case "debug":
+		lvl = slog.LevelDebug
+	case "warn":
+		lvl = slog.LevelWarn
+	case "error":
+		lvl = slog.LevelError
+	default:
+		lvl = slog.LevelInfo
 	}
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl}))
 }

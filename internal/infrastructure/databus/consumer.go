@@ -82,8 +82,10 @@ func (b *DataBus) Run(ctx context.Context) error {
 
 	_, err = consumer.Consume(func(msg jetstream.Msg) {
 		select {
-		case <-ctx.Done(): return
-		default: b.handleMessage(msg)
+		case <-ctx.Done():
+			return
+		default:
+			b.handleMessage(msg)
 		}
 	}, jetstream.ConsumeContext(ctx))
 
@@ -99,7 +101,9 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	defer func() {
 		if r := recover(); r != nil {
 			b.logger.Error("handleMessage panic", "err", r)
-			if b.metrics != nil { b.metrics.EventProcessed("dropped") }
+			if b.metrics != nil {
+				b.metrics.EventProcessed("dropped")
+			}
 			msg.Nak()
 		}
 	}()
@@ -107,20 +111,26 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	var evt Event
 	if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 		b.logger.Debug("parse error", "err", err)
-		if b.metrics != nil { b.metrics.IngestDropped("parse_error") }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("parse_error")
+		}
 		msg.Ack()
 		return
 	}
 
 	if evt.Query == "" || evt.IdempotencyKey == "" {
 		b.logger.Debug("empty field", "query", evt.Query, "key", evt.IdempotencyKey)
-		if b.metrics != nil { b.metrics.IngestDropped("empty") }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("empty")
+		}
 		msg.Ack()
 		return
 	}
 
 	if !b.checkAndMark(evt.IdempotencyKey) {
-		if b.metrics != nil { b.metrics.IngestDropped("idempotency") }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("idempotency")
+		}
 		msg.Ack()
 		return
 	}
@@ -152,8 +162,10 @@ func (b *DataBus) startCleaner(ctx context.Context) {
 		defer ticker.Stop()
 		for {
 			select {
-			case <-ctx.Done(): return
-			case <-ticker.C: b.sweep()
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				b.sweep()
 			}
 		}
 	}()
