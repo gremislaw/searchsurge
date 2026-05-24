@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s -extldflags '-static'" \
     -o /bin/searchsurge \
-    ./cmd/server
+    ./cmd
 
 
 FROM alpine:3.19 AS runtime

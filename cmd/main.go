@@ -21,10 +21,10 @@ import (
 	grpcapi "searchsurge/internal/api/grpc"
 	httpapi "searchsurge/internal/api/http"
 	"searchsurge/internal/config"
-	"searchsurge/internal/databus"
+	"searchsurge/internal/infrastructure/databus"
+	"searchsurge/internal/infrastructure/replicator"
 	"searchsurge/internal/metrics"
 	"searchsurge/internal/pb"
-	"searchsurge/internal/replicator"
 	"searchsurge/internal/resilience"
 	"searchsurge/internal/surgecore"
 )
