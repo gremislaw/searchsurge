@@ -24,7 +24,7 @@ import (
 	"searchsurge/internal/infrastructure/databus"
 	"searchsurge/internal/infrastructure/replicator"
 	"searchsurge/internal/metrics"
-	"searchsurge/internal/pb/proto"
+	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/resilience"
 	"searchsurge/internal/surgecore"
 )
@@ -47,7 +47,7 @@ func main() {
 	}, logger)
 
 	// обёртка latency guard + circuit breaker
-	droppedMetric := metrics.IngestDropped.WithLabelValues("latency_guard")
+	droppedMetric := metrics.IngestDroppedTotal.WithLabelValues("latency_guard")
 	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, droppedMetric)
 
 	var provider api.TrendProvider

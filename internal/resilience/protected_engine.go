@@ -2,7 +2,6 @@ package resilience
 
 import (
 	"context"
-	"math/rand"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,9 +28,9 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 	}
 	accepted := p.core.Ingest(query)
 	if accepted {
-		metrics.EventsProcessed.WithLabelValues("accepted").Inc()
+		metrics.EventsProcessedTotal.WithLabelValues("accepted").Inc()
 	} else {
-		metrics.EventsProcessed.WithLabelValues("dropped").Inc()
+		metrics.EventsProcessedTotal.WithLabelValues("dropped").Inc()
 	}
 	return accepted
 }

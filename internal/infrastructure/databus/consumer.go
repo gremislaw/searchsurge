@@ -62,17 +62,21 @@ func (b *DataBus) Run(ctx context.Context) error {
 	}
 
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name: b.cfg.StreamName, Subjects: []string{b.cfg.Subject},
-		Retention: jetstream.LimitsPolicy, MaxAge: 10 * time.Minute,
-		Storage: jetstream.MemoryStorage,
+		Name:      b.cfg.StreamName,
+		Subjects:  []string{b.cfg.Subject},
+		Retention: jetstream.LimitsPolicy,
+		MaxAge:    10 * time.Minute,
+		Storage:   jetstream.MemoryStorage,
 	})
 	if err != nil {
 		return fmt.Errorf("create stream: %w", err)
 	}
 
 	consumer, err := js.CreateOrUpdateConsumer(ctx, b.cfg.StreamName, jetstream.ConsumerConfig{
-		Name: b.cfg.ConsumerName, Durable: true,
-		AckPolicy: jetstream.AckExplicitPolicy, AckWait: b.cfg.AckWait,
+		Name:        b.cfg.ConsumerName,
+		Durable:     b.cfg.ConsumerName,
+		AckPolicy:   jetstream.AckExplicitPolicy,
+		AckWait:     b.cfg.AckWait,
 	})
 	if err != nil {
 		return fmt.Errorf("create consumer: %w", err)
@@ -100,9 +104,7 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	defer func() {
 		if r := recover(); r != nil {
 			b.logger.Error("handleMessage panic", "err", r)
-			if b.metrics != nil {
-				b.metrics.EventProcessed("dropped")
-			}
+			if b.metrics != nil { b.metrics.EventProcessed("dropped") }
 			msg.Nak()
 		}
 	}()
@@ -110,26 +112,20 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	var evt Event
 	if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 		b.logger.Debug("parse error", "err", err)
-		if b.metrics != nil {
-			b.metrics.IngestDropped("parse_error")
-		}
+		if b.metrics != nil { b.metrics.IngestDropped("parse_error") }
 		msg.Ack()
 		return
 	}
 
 	if evt.Query == "" || evt.IdempotencyKey == "" {
 		b.logger.Debug("empty field", "query", evt.Query, "key", evt.IdempotencyKey)
-		if b.metrics != nil {
-			b.metrics.IngestDropped("empty")
-		}
+		if b.metrics != nil { b.metrics.IngestDropped("empty") }
 		msg.Ack()
 		return
 	}
 
 	if !b.checkAndMark(evt.IdempotencyKey) {
-		if b.metrics != nil {
-			b.metrics.IngestDropped("idempotency")
-		}
+		if b.metrics != nil { b.metrics.IngestDropped("idempotency") }
 		msg.Ack()
 		return
 	}
