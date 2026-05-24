@@ -8,7 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "searchsurge/internal/pb"
+	pb "searchsurge/internal/pb/proto"
 )
 
 type Slave struct {

@@ -74,7 +74,7 @@ func (e *engine) Stop(ctx context.Context) {
 }
 
 func (e *engine) Ingest(query string) bool {
-	q := strings.TrimSpace(strings.ToLower(query))
+	q := NormalizeQuery(query)
 	if q == "" || e.isStopWord(q) {
 		return false
 	}

@@ -46,7 +46,7 @@ bench:
 	k6 run scripts/loadtest.js
 
 clean:
-	rm -rf internal/pb googleapis
+	rm -rf googleapis
 	docker compose down -v --remove-orphans
 	docker system prune -f
 

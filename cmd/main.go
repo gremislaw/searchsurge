@@ -24,7 +24,7 @@ import (
 	"searchsurge/internal/infrastructure/databus"
 	"searchsurge/internal/infrastructure/replicator"
 	"searchsurge/internal/metrics"
-	"searchsurge/internal/pb"
+	"searchsurge/internal/pb/proto"
 	"searchsurge/internal/resilience"
 	"searchsurge/internal/surgecore"
 )

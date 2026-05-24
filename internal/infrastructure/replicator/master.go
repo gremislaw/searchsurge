@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"searchsurge/internal/databus"
+	"searchsurge/internal/infrastructure/databus"
 	"searchsurge/internal/surgecore"
 )
 

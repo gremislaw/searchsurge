@@ -87,8 +87,7 @@ func (b *DataBus) Run(ctx context.Context) error {
 		default:
 			b.handleMessage(msg)
 		}
-	}, jetstream.ConsumeContext(ctx))
-
+	})
 	if err != nil {
 		return fmt.Errorf("consume start: %w", err)
 	}

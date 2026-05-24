@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"searchsurge/internal/api"
-	pb "searchsurge/internal/pb"
+	pb "searchsurge/internal/pb/proto"
 )
 
 type Server struct {
