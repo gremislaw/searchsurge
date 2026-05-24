@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -11,8 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 
 	"searchsurge/internal/api"
 	grpcapi "searchsurge/internal/api/grpc"
@@ -20,6 +23,7 @@ import (
 	"searchsurge/internal/config"
 	"searchsurge/internal/databus"
 	"searchsurge/internal/metrics"
+	"searchsurge/internal/pb"
 	"searchsurge/internal/replicator"
 	"searchsurge/internal/resilience"
 	"searchsurge/internal/surgecore"
@@ -42,7 +46,7 @@ func main() {
 		StaleThreshold:   cfg.StaleThreshold,
 	}, logger)
 
-	// latency guard + circuit breaker обертка
+	// обёртка latency guard + circuit breaker
 	droppedMetric := metrics.IngestDropped.WithLabelValues("latency_guard")
 	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, droppedMetric)
 
@@ -60,71 +64,85 @@ func main() {
 		master := replicator.NewMaster(engine, busCfg, logger)
 		master.Run(ctx)
 		provider = master
-		logger.Info("started as master")
+		logger.Info("node started as master")
 	} else {
 		slave := replicator.NewSlave(cfg.MasterAddr, logger)
 		slave.Run(ctx)
 		provider = slave
-		logger.Info("started as slave", "master_addr", cfg.MasterAddr)
+		logger.Info("node started as slave", "master_addr", cfg.MasterAddr)
 	}
 
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(
+		grpc.UnaryInterceptor(grpcapi.UnaryLoggingInterceptor(logger, cfg.Role)),
+		grpc.StreamInterceptor(grpcapi.StreamLoggingInterceptor(logger, cfg.Role)),
+	)
+
 	grpcServer := grpcapi.NewServer(provider)
 	grpcServer.Register(grpcSrv)
+	reflection.Register(grpcSrv)
 
-	httpHandler := httpapi.NewRouter(provider)
+	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	if err != nil {
+		logger.Error("gRPC listen failed", "err", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		logger.Info("gRPC server started", "addr", cfg.GRPCAddr)
+		if err := grpcSrv.Serve(lis); err != nil {
+			logger.Error("gRPC serve error", "err", err)
+		}
+	}()
+
+	// gRPC-Gateway
+	gwMux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	
+	if err := pb.RegisterTrendServiceHandlerFromEndpoint(ctx, gwMux, cfg.GRPCAddr, opts); err != nil {
+		logger.Error("gateway registration failed", "err", err)
+		os.Exit(1)
+	}
+
+	httpHandler := httpapi.NewRouter(gwMux, cfg.Role)
 
 	httpSrv := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      httpHandler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
-	promSrv := &http.Server{
+	go func() {
+		logger.Info("HTTP server started", "addr", cfg.HTTPAddr)
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP serve error", "err", err)
+		}
+	}()
+
+	metricsSrv := &http.Server{
 		Addr:         cfg.PrometheusAddr,
 		Handler:      promhttp.Handler(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
-
-	go func() {
-		lis, err := net.Listen("tcp", cfg.GRPCAddr)
-		if err != nil {
-			logger.Error("gRPC listen failed", "err", err)
-			os.Exit(1)
-		}
-		logger.Info("gRPC server started", "addr", cfg.GRPCAddr)
-		if err := grpcSrv.Serve(lis); err != nil {
-			logger.Error("gRPC server error", "err", err)
-		}
-	}()
-
-	go func() {
-		logger.Info("HTTP server started", "addr", cfg.HTTPAddr)
-		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server error", "err", err)
-		}
-	}()
-
+	
 	go func() {
 		logger.Info("Prometheus metrics started", "addr", cfg.PrometheusAddr)
-		if err := promSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Prometheus server error", "err", err)
+		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("Metrics serve error", "err", err)
 		}
 	}()
 
 	<-ctx.Done()
 	logger.Info("shutdown initiated")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Graceful shutdown
-	core.Stop(shutdownCtx)
+	httpSrv.Shutdown(shCtx)
 	grpcSrv.GracefulStop()
-	httpSrv.Shutdown(shutdownCtx)
-	promSrv.Shutdown(shutdownCtx)
+	core.Stop(shCtx)
 
 	logger.Info("shutdown complete")
 }
@@ -132,14 +150,10 @@ func main() {
 func initLogger(level string) *slog.Logger {
 	var lvl slog.Level
 	switch level {
-	case "debug":
-		lvl = slog.LevelDebug
-	case "warn":
-		lvl = slog.LevelWarn
-	case "error":
-		lvl = slog.LevelError
-	default:
-		lvl = slog.LevelInfo
+	case "debug": lvl = slog.LevelDebug
+	case "warn": lvl = slog.LevelWarn
+	case "error": lvl = slog.LevelError
+	default: lvl = slog.LevelInfo
 	}
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl}))
 }

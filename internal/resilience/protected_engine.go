@@ -72,7 +72,7 @@ func (p *ProtectedEngine) GetSnapshotJSON() []byte {
 	snap := p.core.GetSnapshotJSON()
 	elapsed := time.Since(start)
 	p.guard.RecordLatency(elapsed)
-	metrics.SnapshotLatency.Observe(elapsed.Seconds())
+	metrics.SnapshotLatencySeconds.Observe(elapsed.Seconds())
 	return snap
 }
 

@@ -28,19 +28,23 @@ type Event struct {
 	Ts             int64  `json:"ts"`
 }
 
+type MetricsObserver interface {
+	EventProcessed(status string)
+	IngestDropped(reason string)
+}
+
 type DataBus struct {
 	cfg      Config
 	engine   surgecore.Engine
 	logger   *slog.Logger
+	metrics  MetricsObserver
 	mu       sync.Mutex
 	seenKeys map[string]time.Time
 }
 
-func New(cfg Config, engine surgecore.Engine, logger *slog.Logger) *DataBus {
+func New(cfg Config, engine surgecore.Engine, logger *slog.Logger, metrics MetricsObserver) *DataBus {
 	return &DataBus{
-		cfg:      cfg,
-		engine:   engine,
-		logger:   logger,
+		cfg: cfg, engine: engine, logger: logger, metrics: metrics,
 		seenKeys: make(map[string]time.Time, 4096),
 	}
 }
@@ -58,21 +62,17 @@ func (b *DataBus) Run(ctx context.Context) error {
 	}
 
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name:      b.cfg.StreamName,
-		Subjects:  []string{b.cfg.Subject},
-		Retention: jetstream.LimitsPolicy,
-		MaxAge:    10 * time.Minute,
-		Storage:   jetstream.MemoryStorage,
+		Name: b.cfg.StreamName, Subjects: []string{b.cfg.Subject},
+		Retention: jetstream.LimitsPolicy, MaxAge: 10 * time.Minute,
+		Storage: jetstream.MemoryStorage,
 	})
 	if err != nil {
 		return fmt.Errorf("create stream: %w", err)
 	}
 
 	consumer, err := js.CreateOrUpdateConsumer(ctx, b.cfg.StreamName, jetstream.ConsumerConfig{
-		Name:      b.cfg.ConsumerName,
-		Durable:   true,
-		AckPolicy: jetstream.AckExplicitPolicy,
-		AckWait:   b.cfg.AckWait,
+		Name: b.cfg.ConsumerName, Durable: true,
+		AckPolicy: jetstream.AckExplicitPolicy, AckWait: b.cfg.AckWait,
 	})
 	if err != nil {
 		return fmt.Errorf("create consumer: %w", err)
@@ -82,10 +82,8 @@ func (b *DataBus) Run(ctx context.Context) error {
 
 	_, err = consumer.Consume(func(msg jetstream.Msg) {
 		select {
-		case <-ctx.Done():
-			return
-		default:
-			b.handleMessage(msg)
+		case <-ctx.Done(): return
+		default: b.handleMessage(msg)
 		}
 	}, jetstream.ConsumeContext(ctx))
 
@@ -98,23 +96,43 @@ func (b *DataBus) Run(ctx context.Context) error {
 }
 
 func (b *DataBus) handleMessage(msg jetstream.Msg) {
+	defer func() {
+		if r := recover(); r != nil {
+			b.logger.Error("handleMessage panic", "err", r)
+			if b.metrics != nil { b.metrics.EventProcessed("dropped") }
+			msg.Nak()
+		}
+	}()
+
 	var evt Event
 	if err := json.Unmarshal(msg.Data(), &evt); err != nil {
+		b.logger.Debug("parse error", "err", err)
+		if b.metrics != nil { b.metrics.IngestDropped("parse_error") }
 		msg.Ack()
 		return
 	}
 
 	if evt.Query == "" || evt.IdempotencyKey == "" {
+		b.logger.Debug("empty field", "query", evt.Query, "key", evt.IdempotencyKey)
+		if b.metrics != nil { b.metrics.IngestDropped("empty") }
 		msg.Ack()
 		return
 	}
 
 	if !b.checkAndMark(evt.IdempotencyKey) {
+		if b.metrics != nil { b.metrics.IngestDropped("idempotency") }
 		msg.Ack()
 		return
 	}
 
-	b.engine.Ingest(evt.Query)
+	accepted := b.engine.Ingest(evt.Query)
+	if b.metrics != nil {
+		if accepted {
+			b.metrics.EventProcessed("accepted")
+		} else {
+			b.metrics.EventProcessed("dropped")
+		}
+	}
 	msg.Ack()
 }
 
@@ -134,10 +152,8 @@ func (b *DataBus) startCleaner(ctx context.Context) {
 		defer ticker.Stop()
 		for {
 			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				b.sweep()
+			case <-ctx.Done(): return
+			case <-ticker.C: b.sweep()
 			}
 		}
 	}()

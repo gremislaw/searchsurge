@@ -6,15 +6,13 @@ import (
 	"time"
 )
 
-const serviceName = "searchsurge"
-
-func LoggingMiddleware(next http.Handler) http.Handler {
+func LoggingMiddleware(next http.Handler, serviceRole string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := &statusWriter{ResponseWriter: w}
 		next.ServeHTTP(ww, r)
 		elapsed := time.Since(start).Milliseconds()
-		fmt.Printf("[%s] %s %s -> %d (%dms)\n", serviceName, r.Method, r.URL.Path, ww.status, elapsed)
+		fmt.Printf("[%s] %s %s -> %d (%dms)\n", serviceRole, r.Method, r.URL.Path, ww.status, elapsed)
 	})
 }
 

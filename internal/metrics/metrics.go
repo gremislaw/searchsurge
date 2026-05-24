@@ -5,45 +5,42 @@ import (
 )
 
 var (
-	EventsProcessed = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "searchsurge_events_processed_total",
-			Help: "Total number of search events processed",
-		},
-		[]string{"status"}, // "accepted", "dropped"
+	EventsProcessedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "searchsurge_events_processed_total", Help: "Total events handled"},
+		[]string{"status"}, // accepted, dropped
+	)
+	IngestDroppedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "searchsurge_ingest_dropped_total", Help: "Events dropped at ingest"},
+		[]string{"reason"}, // stoplist, empty, latency_guard, idempotency
 	)
 
-	IngestDropped = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "searchsurge_ingest_dropped_total",
-			Help: "Total number of events dropped at ingest",
-		},
-		[]string{"reason"}, // "stoplist", "empty", "latency_guard", "idempotency"
-	)
-
-	SnapshotLatency = prometheus.NewHistogram(
+	SnapshotLatencySeconds = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Name:    "searchsurge_snapshot_latency_seconds",
-			Help:    "Latency of snapshot build + marshal",
+			Help:    "Build + marshal latency",
 			Buckets: []float64{0.001, 0.003, 0.005, 0.01, 0.02, 0.05},
 		},
 	)
 
 	ActiveEntries = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "searchsurge_active_entries",
-			Help: "Current number of unique queries in memory",
-		},
+		prometheus.GaugeOpts{Name: "searchsurge_active_entries", Help: "Unique queries in memory"},
+	)
+	TopSnapshotSize = prometheus.NewGauge(
+		prometheus.GaugeOpts{Name: "searchsurge_top_snapshot_size", Help: "Items in last rendered snapshot"},
 	)
 
-	TopSnapshotSize = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "searchsurge_top_snapshot_size",
-			Help: "Number of items in the last rendered top snapshot",
-		},
+	NATSConsumerLag = prometheus.NewGauge(
+		prometheus.GaugeOpts{Name: "searchsurge_nats_consumer_lag", Help: "Pending messages in stream"},
+	)
+	ReplicationStreamStatus = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Name: "searchsurge_replication_stream_status", Help: "1=connected, 0=disconnected"},
+		[]string{"role"},
 	)
 )
 
 func Register(r prometheus.Registerer) {
-	r.MustRegister(EventsProcessed, IngestDropped, SnapshotLatency, ActiveEntries, TopSnapshotSize)
+	r.MustRegister(
+		EventsProcessedTotal, IngestDroppedTotal, SnapshotLatencySeconds,
+		ActiveEntries, TopSnapshotSize, NATSConsumerLag, ReplicationStreamStatus,
+	)
 }

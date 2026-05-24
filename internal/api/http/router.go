@@ -3,16 +3,14 @@ package http
 import (
 	"net/http"
 
-	"searchsurge/internal/surgecore"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
-func NewRouter(engine surgecore.Engine) http.Handler {
-	h := NewHandlers(engine)
+func NewRouter(gwMux *runtime.ServeMux, role string) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/top", h.Top)
-	mux.HandleFunc("/stoplist", h.Stoplist)
-	mux.HandleFunc("/health", h.Health)
+	mux.Handle("/", gwMux)
+	mux.HandleFunc("/health", Health)
 
-	return LoggingMiddleware(mux)
+	return LoggingMiddleware(mux, role)
 }
