@@ -17,6 +17,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
+	_ "net/http/pprof"
+
 	"searchsurge/internal/api"
 	grpcapi "searchsurge/internal/api/grpc"
 	httpapi "searchsurge/internal/api/http"
@@ -136,6 +138,19 @@ func main() {
 		}
 	}()
 
+	debugSrv := &http.Server{
+		Addr:         cfg.DebugAddr,
+		Handler:      http.DefaultServeMux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	go func() {
+		logger.Info("debug/pprof started", "addr", cfg.DebugAddr)
+		if err := debugSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("debug server failed", "err", err)
+		}
+	}()
+
 	<-ctx.Done()
 	logger.Info("shutdown initiated")
 
@@ -147,6 +162,10 @@ func main() {
 	}
 	grpcSrv.GracefulStop()
 	core.Stop(shCtx)
+
+	if err := debugSrv.Shutdown(shCtx); err != nil {
+		logger.Error("pprof graceful shutdown failed", "err", err)
+	}
 
 	logger.Info("shutdown complete")
 }
