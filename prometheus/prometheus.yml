@@ -19,14 +19,17 @@ scrape_configs:
       - targets: ["localhost:9090"]
 
   - job_name: searchsurge-master
-    static_configs:
-      - targets: ["searchsurge-master:9091"]
-    labels:
-      role: master
     metrics_path: /metrics
     scheme: http
+    static_configs:
+      - targets: ["searchsurge-master:9091"]
+        labels:
+          role: master
+          instance: master
 
   - job_name: searchsurge-slaves
+    metrics_path: /metrics
+    scheme: http
     dns_sd_configs:
       - names: ["tasks.searchsurge-slave"]
         type: A
@@ -34,8 +37,6 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
-      - source_labels: [__meta_dns_name]
-        target_label: slave_name
 
   - job_name: nginx
     static_configs:

@@ -20,6 +20,18 @@ test:
 test-race:
 	go test ./... -v -race -count=1
 
+test-integration:
+	@echo "Starting integration environment..."
+	make up
+	@echo "Waiting for services..."
+	@for i in 1 2 3 4 5; do \
+		curl -s http://localhost:8081/health > /dev/null && break || sleep 2; \
+	done
+	@echo "Running integration tests..."
+	INTEGRATION=1 go test -v -tags=integration -timeout=5m ./tests/integration/...
+	@echo "Cleaning up..."
+	docker compose down
+
 lint:
 	golangci-lint run ./...
 
@@ -52,14 +64,15 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  make up          - Start all services (detached)"
-	@echo "  make down        - Stop and remove containers"
-	@echo "  make restart     - Restart all services"
-	@echo "  make build       - Rebuild Docker images"
-	@echo "  make logs        - Follow logs of searchsurge nodes"
-	@echo "  make test        - Run unit tests"
-	@echo "  make test-race   - Run tests with -race detector"
-	@echo "  make lint        - Run golangci-lint"
-	@echo "  make proto-gen   - Generate protobuf Go code"
-	@echo "  make bench       - Run k6 load test"
-	@echo "  make clean       - Remove generated files and volumes"
+	@echo "  make up               - Start all services (detached)"
+	@echo "  make down             - Stop and remove containers"
+	@echo "  make restart          - Restart all services"
+	@echo "  make build            - Rebuild Docker images"
+	@echo "  make logs             - Follow logs of searchsurge nodes"
+	@echo "  make test             - Run unit tests"
+	@echo "  make test-race        - Run tests with -race detector"
+	@echo "  make lint             - Run golangci-lint"
+	@echo "  make proto-gen        - Generate protobuf Go code"
+	@echo "  make bench            - Run k6 load test"
+	@echo "  make clean            - Remove generated files and volumes"
+	@echo "  make test-integration - Run integration tests"

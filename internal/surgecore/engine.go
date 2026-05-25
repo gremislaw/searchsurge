@@ -117,8 +117,16 @@ func (e *engine) isStopWord(q string) bool {
 	if m == nil {
 		return false
 	}
-	_, ok := (*m)[q]
-	return ok
+	if _, ok := (*m)[q]; ok {
+		return true
+	}
+	words := strings.Fields(q)
+	for _, w := range words {
+		if _, ok := (*m)[w]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *engine) GetSnapshotJSON() []byte {

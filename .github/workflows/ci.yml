@@ -26,12 +26,12 @@ jobs:
         run: |
           UNFORMATTED=$(gofmt -l .)
           if [ -n "$UNFORMATTED" ]; then
-            echo "❌ Unformatted files:"
+            echo "Unformatted files:"
             echo "$UNFORMATTED"
             echo "Run 'gofmt -w .' to fix"
             exit 1
           fi
-          echo "✅ All files formatted"
+          echo "All files formatted"
 
       - name: go vet + shadow check
         run: |
@@ -46,6 +46,59 @@ jobs:
 
       - name: Validate Compose
         run: docker compose config
+    integration:
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    timeout-minutes: 10
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Start Docker Compose stack
+        run: |
+          docker compose pull
+          docker compose up -d --wait
+          echo "Waiting for services to be healthy..."
+          sleep 5  # Даём время на финальную инициализацию
+
+      - name: Verify services
+        run: |
+          # Проверка, что сервисы отвечают
+          curl -sf http://localhost:8081/health || exit 1
+          curl -sf http://localhost:9091/metrics || exit 1
+          curl -sf http://localhost:9095/-/healthy || exit 1
+          echo "All services healthy"
+
+      - name: Run integration tests
+        run: |
+          # Запускаем только интеграционные тесты с тегами
+          INTEGRATION=1 go test -v -tags=integration -timeout=5m ./tests/integration/...
+
+      - name: Upload test artifacts (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: integration-logs
+          path: |
+            docker-compose-logs.txt
+          retention-days: 3
+        continue-on-error: true
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker compose logs > docker-compose-logs.txt
+          cat docker-compose-logs.txt
+
+      - name: Cleanup
+        run: docker compose down -v
+        if: always()
 
   release:
     needs: verify
