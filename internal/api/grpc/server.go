@@ -44,7 +44,7 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 	if limit <= 0 {
 		limit = DEFAULTLIMIT
 	}
-	if limit > maxLimit {
+	if limit > MAXLIMIT {
 		limit = MAXLIMIT
 	}
 
