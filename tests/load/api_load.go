@@ -9,25 +9,105 @@ import (
 	"io"
 	"log"
 	"math"
+	"net"
 	"net/http"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	baseURL     = "http://127.0.0.1:8081"
-	duration    = 90 * time.Second
-	concurrency = 100
-	tickRate    = 50 * time.Millisecond
+	defaultBaseURL     = "http://127.0.0.1:8081"
+	defaultDurationSec = 90
+	defaultConcurrency = 100
+	defaultTickRateMs  = 50
+	defaultTimeoutSec  = 5
+	warmupTimeoutSec   = 30
+	maxRetries         = 3
 )
 
+func getEnv(key, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return defaultValue
+}
+
+func waitForServer(ctx context.Context, client *http.Client, baseURL string) error {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, warmupTimeoutSec*time.Second)
+	defer cancel()
+
+	log.Printf("Waiting for server at %s/health (timeout: %ds)", baseURL, warmupTimeoutSec)
+
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return fmt.Errorf("server not available after %ds", warmupTimeoutSec)
+		case <-ticker.C:
+			resp, err := client.Get(baseURL + "/health")
+			if err != nil {
+				log.Printf("Health check failed (retrying): %v", err)
+				continue
+			}
+			if resp.StatusCode == http.StatusOK {
+				resp.Body.Close()
+				log.Println("Server is ready")
+				return nil
+			}
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			log.Printf("Health check returned %d: %s (retrying)", resp.StatusCode, string(body))
+		}
+	}
+}
+
 func main() {
+	baseURL := getEnv("BASE_URL", defaultBaseURL)
+	durationSec := getEnvInt("DURATION_SEC", defaultDurationSec)
+	concurrency := getEnvInt("CONCURRENCY", defaultConcurrency)
+	tickRateMs := getEnvInt("TICK_RATE_MS", defaultTickRateMs)
+
+	duration := time.Duration(durationSec) * time.Second
+	tickRate := time.Duration(tickRateMs) * time.Millisecond
+
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{
+		Timeout: time.Duration(defaultTimeoutSec) * time.Second,
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   5 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			MaxIdleConns:        200,
+			MaxIdleConnsPerHost: 200,
+			MaxConnsPerHost:     200,
+			IdleConnTimeout:     90 * time.Second,
+			DisableKeepAlives:   false,
+			ForceAttemptHTTP2:   true,
+		},
+	}
+
+	if err := waitForServer(ctx, client, baseURL); err != nil {
+		log.Fatalf("Failed to connect to server: %v", err)
+	}
 
 	var (
 		total, success, fail int64
@@ -48,33 +128,52 @@ func main() {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					t0 := time.Now()
 					url := baseURL + "/health"
 					if id%2 == 0 {
 						url = baseURL + "/top?n=10"
 					}
 
-					resp, err := client.Get(url)
-					elapsed := time.Since(t0).Seconds() * 1000
+					var resp *http.Response
+					var err error
+					var elapsed float64
 
-					atomic.AddInt64(&total, 1)
-					if err == nil && resp.StatusCode == http.StatusOK {
-						atomic.AddInt64(&success, 1)
-						resp.Body.Close()
-					} else {
-						atomic.AddInt64(&fail, 1)
+					for attempt := 0; attempt < maxRetries; attempt++ {
+						t0 := time.Now()
+						resp, err = client.Get(url)
+						elapsed = time.Since(t0).Seconds() * 1000
+
+						if err == nil && resp.StatusCode == http.StatusOK {
+							atomic.AddInt64(&total, 1)
+							atomic.AddInt64(&success, 1)
+							io.Copy(io.Discard, resp.Body)
+							resp.Body.Close()
+
+							mu.Lock()
+							latencies = append(latencies, elapsed)
+							mu.Unlock()
+							break
+						}
+
 						if err != nil {
+							if strings.Contains(err.Error(), "can't assign requested address") ||
+								strings.Contains(err.Error(), "no free ports") {
+								if attempt < maxRetries-1 {
+									time.Sleep(50 * time.Millisecond)
+									continue
+								}
+							}
 							log.Printf("Request error: %v", err)
+							atomic.AddInt64(&total, 1)
+							atomic.AddInt64(&fail, 1)
 						} else if resp != nil {
 							log.Printf("HTTP %d for %s", resp.StatusCode, url)
 							io.Copy(io.Discard, resp.Body)
 							resp.Body.Close()
+							atomic.AddInt64(&total, 1)
+							atomic.AddInt64(&fail, 1)
 						}
+						break
 					}
-
-					mu.Lock()
-					latencies = append(latencies, elapsed)
-					mu.Unlock()
 				}
 			}
 		}(i)

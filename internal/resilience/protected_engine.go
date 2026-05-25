@@ -4,8 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"searchsurge/internal/metrics"
+	"searchsurge/internal/shared"
 	"searchsurge/internal/surgecore"
 )
 
@@ -14,7 +13,7 @@ type ProtectedEngine struct {
 	guard *LatencyGuard
 }
 
-func NewProtectedEngine(core surgecore.Engine, threshold time.Duration, dropped prometheus.Counter) *ProtectedEngine {
+func NewProtectedEngine(core surgecore.Engine, threshold time.Duration, dropped shared.MetricsCounter) *ProtectedEngine {
 	return &ProtectedEngine{
 		core:  core,
 		guard: NewLatencyGuard(threshold, dropped),
@@ -28,9 +27,9 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 	}
 	accepted := p.core.Ingest(query)
 	if accepted {
-		metrics.EventsProcessedTotal.WithLabelValues("accepted").Inc()
+		p.guard.metrics.EventProcessed("accepted")
 	} else {
-		metrics.EventsProcessedTotal.WithLabelValues("dropped").Inc()
+		p.guard.metrics.EventProcessed("dropped")
 	}
 	return accepted
 }
@@ -40,7 +39,6 @@ func (p *ProtectedEngine) GetSnapshotJSON() []byte {
 	snap := p.core.GetSnapshotJSON()
 	elapsed := time.Since(start)
 	p.guard.RecordLatency(elapsed)
-	metrics.SnapshotLatencySeconds.Observe(elapsed.Seconds())
 	return snap
 }
 

@@ -4,9 +4,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	io_prometheus_client "github.com/prometheus/client_model/go"
 )
 
 type mockCounter struct {
@@ -19,13 +16,7 @@ func (m *mockCounter) Inc() {
 	defer m.mu.Unlock()
 	m.count++
 }
-func (m *mockCounter) Write(out *io_prometheus_client.Metric) error { return nil }
-func (m *mockCounter) Add(float64)                                  {}
-func (m *mockCounter) Desc() *prometheus.Desc {
-	return prometheus.NewDesc("mock_counter", "mock counter for tests", nil, nil)
-}
-func (m *mockCounter) Describe(chan<- *prometheus.Desc) {}
-func (m *mockCounter) Collect(chan<- prometheus.Metric) {}
+func (m *mockCounter) Add(float64) {}
 func (m *mockCounter) Count() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()

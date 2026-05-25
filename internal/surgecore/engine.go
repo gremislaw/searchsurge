@@ -88,6 +88,7 @@ func (e *engine) Ingest(query string) bool {
 	if !ok {
 		e.entries[q] = &entry{score: 1.0, lastUpd: now}
 		e.mu.Unlock()
+
 		return true
 	}
 

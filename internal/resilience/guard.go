@@ -4,8 +4,6 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type LatencyGuard struct {
@@ -13,11 +11,11 @@ type LatencyGuard struct {
 	lastLatency time.Duration
 	dropRate    float64
 	threshold   time.Duration
-	dropped     prometheus.Counter
+	metrics     shared.MetricsCounter
 }
 
-func NewLatencyGuard(threshold time.Duration, dropped prometheus.Counter) *LatencyGuard {
-	return &LatencyGuard{threshold: threshold, dropped: dropped}
+func NewLatencyGuard(threshold time.Duration, metrics shared.MetricsCounter) *LatencyGuard {
+	return &LatencyGuard{threshold: threshold, metrics: metrics}
 }
 
 func (g *LatencyGuard) ShouldAdmit() bool {
@@ -27,8 +25,8 @@ func (g *LatencyGuard) ShouldAdmit() bool {
 	if g.lastLatency > g.threshold {
 		g.dropRate = min(1.0, g.dropRate+0.1)
 		if rand.Float64() < g.dropRate {
-			if g.dropped != nil {
-				g.dropped.Inc()
+			if g.metrics != nil {
+				g.metrics.Inc()
 			}
 			return false
 		}

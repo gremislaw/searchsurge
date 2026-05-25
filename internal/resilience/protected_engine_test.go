@@ -43,6 +43,23 @@ func (m *mockEngine) Run(ctx context.Context)  {}
 func (m *mockEngine) Stop(ctx context.Context) {}
 func (m *mockEngine) Stats() (int, int)        { return 0, 0 }
 
+type mockCounter struct {
+	mu    sync.Mutex
+	count int
+}
+
+func (m *mockCounter) Inc() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.count++
+}
+func (m *mockCounter) Add(float64) {}
+func (m *mockCounter) Count() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.count
+}
+
 func TestProtectedEngine_Ingest_AdmittedAndAccepted(t *testing.T) {
 	t.Parallel()
 
