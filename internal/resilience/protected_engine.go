@@ -27,9 +27,9 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 	}
 	accepted := p.core.Ingest(query)
 	if accepted {
-		p.guard.metrics.EventProcessed("accepted")
+		p.guard.metrics.EventProcessedTotal("accepted")
 	} else {
-		p.guard.metrics.EventProcessed("dropped")
+		p.guard.metrics.EventProcessedTotal("dropped")
 	}
 	return accepted
 }
