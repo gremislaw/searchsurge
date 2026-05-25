@@ -2,14 +2,15 @@ package grpc
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+	
+	"searchsurge/internal/shared"
 )
 
-func UnaryLoggingInterceptor(logger *slog.Logger, role string) grpc.UnaryServerInterceptor {
+func UnaryLoggingInterceptor(logger shared.Logger, role string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		start := time.Now()
 		resp, err := handler(ctx, req)
@@ -25,7 +26,7 @@ func UnaryLoggingInterceptor(logger *slog.Logger, role string) grpc.UnaryServerI
 	}
 }
 
-func StreamLoggingInterceptor(logger *slog.Logger, role string) grpc.StreamServerInterceptor {
+func StreamLoggingInterceptor(logger shared.Logger, role string) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		start := time.Now()
 		err := handler(srv, ss)

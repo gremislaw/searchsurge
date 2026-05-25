@@ -27,6 +27,7 @@ import (
 	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/resilience"
 	"searchsurge/internal/surgecore"
+	"searchsurge/internal/shared"
 )
 
 func main() {
@@ -57,10 +58,10 @@ func main() {
 		busCfg := databus.Config{
 			URL:            cfg.BrokerURL,
 			Subject:        cfg.BrokerSubject,
-			StreamName:     "search_trends",
-			ConsumerName:   "surge_master",
-			IdempotencyTTL: 5 * time.Minute,
-			AckWait:        30 * time.Second,
+			StreamName:     shared.StreamName,
+			ConsumerName:   shared.ConsumerName,
+			IdempotencyTTL: shared.IdempotencyTTL,
+			AckWait:        shared.AckWait,
 		}
 		master := replicator.NewMaster(engine, busCfg, logger, busMetrics)
 		master.Run(ctx)
@@ -109,9 +110,9 @@ func main() {
 	httpSrv := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      httpHandler,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  shared.ReadTimeout,
+		WriteTimeout: shared.WriteTimeout,
+		IdleTimeout:  shared.IdleTimeout,
 	}
 
 	go func() {
@@ -124,8 +125,8 @@ func main() {
 	metricsSrv := &http.Server{
 		Addr:         cfg.PrometheusAddr,
 		Handler:      promhttp.Handler(),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  shared.ReadTimeout,
+		WriteTimeout: shared.WriteTimeout,
 	}
 
 	go func() {
@@ -138,17 +139,19 @@ func main() {
 	<-ctx.Done()
 	logger.Info("shutdown initiated")
 
-	shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shCtx, cancel := context.WithTimeout(context.Background(), shared.GracefulShutdownTimeout)
 	defer cancel()
 
-	httpSrv.Shutdown(shCtx)
+	if err := httpSrv.Shutdown(shCtx); err != nil {
+		logger.Error("HTTP graceful shutdown failed", "err", err)
+	}
 	grpcSrv.GracefulStop()
 	core.Stop(shCtx)
 
 	logger.Info("shutdown complete")
 }
 
-func initLogger(level string) *slog.Logger {
+func initLogger(level string) shared.Logger {
 	var lvl slog.Level
 	switch level {
 	case "debug":

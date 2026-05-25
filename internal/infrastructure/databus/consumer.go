@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"searchsurge/internal/surgecore"
+	"searchsurge/internal/shared"
 )
 
 type Config struct {
@@ -36,13 +36,13 @@ type MetricsObserver interface {
 type DataBus struct {
 	cfg      Config
 	engine   surgecore.Engine
-	logger   *slog.Logger
+	logger   shared.Logger
 	metrics  MetricsObserver
 	mu       sync.Mutex
 	seenKeys map[string]time.Time
 }
 
-func New(cfg Config, engine surgecore.Engine, logger *slog.Logger, metrics MetricsObserver) *DataBus {
+func New(cfg Config, engine surgecore.Engine, logger shared.Logger, metrics MetricsObserver) *DataBus {
 	return &DataBus{
 		cfg: cfg, engine: engine, logger: logger, metrics: metrics,
 		seenKeys: make(map[string]time.Time, 4096),
@@ -65,7 +65,7 @@ func (b *DataBus) Run(ctx context.Context) error {
 		Name:      b.cfg.StreamName,
 		Subjects:  []string{b.cfg.Subject},
 		Retention: jetstream.LimitsPolicy,
-		MaxAge:    10 * time.Minute,
+		MaxAge:    shared.EventMaxAge,
 		Storage:   jetstream.MemoryStorage,
 	})
 	if err != nil {
@@ -104,49 +104,37 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	defer func() {
 		if r := recover(); r != nil {
 			b.logger.Error("handleMessage panic", "err", r)
-			if b.metrics != nil {
-				b.metrics.EventProcessed("dropped")
-			}
-			msg.Nak()
+			if b.metrics != nil { b.metrics.EventProcessed("dropped") }
+			if err := msg.Nak(); err != nil { b.logger.Debug("nak failed", "err", err) }
 		}
 	}()
 
 	var evt Event
 	if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 		b.logger.Debug("parse error", "err", err)
-		if b.metrics != nil {
-			b.metrics.IngestDropped("parse_error")
-		}
-		msg.Ack()
+		if b.metrics != nil { b.metrics.IngestDropped("parse_error") }
+		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
 		return
 	}
 
 	if evt.Query == "" || evt.IdempotencyKey == "" {
 		b.logger.Debug("empty field", "query", evt.Query, "key", evt.IdempotencyKey)
-		if b.metrics != nil {
-			b.metrics.IngestDropped("empty")
-		}
-		msg.Ack()
+		if b.metrics != nil { b.metrics.IngestDropped("empty") }
+		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
 		return
 	}
 
 	if !b.checkAndMark(evt.IdempotencyKey) {
-		if b.metrics != nil {
-			b.metrics.IngestDropped("idempotency")
-		}
-		msg.Ack()
+		if b.metrics != nil { b.metrics.IngestDropped("idempotency") }
+		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
 		return
 	}
 
 	accepted := b.engine.Ingest(evt.Query)
 	if b.metrics != nil {
-		if accepted {
-			b.metrics.EventProcessed("accepted")
-		} else {
-			b.metrics.EventProcessed("dropped")
-		}
+		if accepted { b.metrics.EventProcessed("accepted") } else { b.metrics.EventProcessed("dropped") }
 	}
-	msg.Ack()
+	if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
 }
 
 func (b *DataBus) checkAndMark(key string) bool {

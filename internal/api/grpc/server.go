@@ -11,11 +11,7 @@ import (
 
 	"searchsurge/internal/api"
 	pb "searchsurge/internal/pb/proto"
-)
-
-const (
-	MAXLIMIT     = 2000
-	DEFAULTLIMIT = 5
+	"searchsurge/internal/shared"
 )
 
 type Server struct {
@@ -42,10 +38,10 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 
 	limit := int(req.GetN())
 	if limit <= 0 {
-		limit = DEFAULTLIMIT
+		limit = shared.DefaultLimit
 	}
-	if limit > MAXLIMIT {
-		limit = MAXLIMIT
+	if limit > shared.MaxLimit {
+		limit = shared.MaxLimit
 	}
 
 	if len(items) > limit {
@@ -64,7 +60,7 @@ func (s *Server) UpdateStoplist(ctx context.Context, req *pb.StoplistRequest) (*
 }
 
 func (s *Server) StreamTop(req *pb.StreamTopRequest, stream pb.TrendService_StreamTopServer) error {
-	ticker := time.NewTicker(1500 * time.Millisecond)
+	ticker := time.NewTicker(shared.DefaultSnapshotInterval)
 	defer ticker.Stop()
 	ctx := stream.Context()
 	for {

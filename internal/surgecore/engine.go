@@ -3,13 +3,14 @@ package surgecore
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"math"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	
+	"searchsurge/internal/shared"
 )
 
 type Config struct {
@@ -27,7 +28,7 @@ type entry struct {
 
 type engine struct {
 	cfg      Config
-	logger   *slog.Logger
+	logger   shared.Logger
 	mu       sync.Mutex
 	entries  map[string]*entry
 	stopList atomic.Pointer[map[string]struct{}]
@@ -46,7 +47,7 @@ type Engine interface {
 	Stop(ctx context.Context)
 }
 
-func New(cfg Config, logger *slog.Logger) Engine {
+func New(cfg Config, logger shared.Logger) Engine {
 	return &engine{
 		cfg:     cfg,
 		logger:  logger,

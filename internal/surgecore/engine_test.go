@@ -184,7 +184,9 @@ func TestEngine_BuildSnapshot_StalePruning(t *testing.T) {
 	var items []struct {
 		Query string `json:"query"`
 	}
-	json.Unmarshal(e.GetSnapshotJSON(), &items)
+	if err := json.Unmarshal(e.GetSnapshotJSON(), &items); err != nil {
+		t.Fatalf("unmarshal snapshot: %v", err)
+	}
 
 	found := make(map[string]bool)
 	for _, it := range items {
@@ -213,7 +215,9 @@ func TestEngine_NormalizeQuery_Integration(t *testing.T) {
 	var items []struct {
 		Query string `json:"query"`
 	}
-	json.Unmarshal(e.GetSnapshotJSON(), &items)
+	if err := json.Unmarshal(e.GetSnapshotJSON(), &items); err != nil {
+		t.Fatalf("unmarshal snapshot: %v", err)
+	}
 
 	count := 0
 	for _, it := range items {
