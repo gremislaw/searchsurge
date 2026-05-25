@@ -119,9 +119,9 @@ services:
     ports:
       - "9095:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus/data
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -147,7 +147,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/searchsurge.json:ro
+      - ./prometheus/grafana.json:/etc/grafana/provisioning/dashboards/searchsurge.json:ro
     depends_on:
       - prometheus
     networks:
