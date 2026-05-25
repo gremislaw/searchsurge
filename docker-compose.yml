@@ -151,14 +151,12 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./prometheus/grafana.json:/etc/grafana/provisioning/dashboards/searchsurge.json:ro
+      - ./prometheus/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./prometheus/grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
       - searchsurge-net
-    deploy:
-      resources:
-        limits: { memory: 256M, cpus: '0.25' }
     restart: unless-stopped
 
 volumes:
