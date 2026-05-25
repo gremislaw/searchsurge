@@ -13,7 +13,7 @@ type ProtectedEngine struct {
 	guard *LatencyGuard
 }
 
-func NewProtectedEngine(core surgecore.Engine, threshold time.Duration, dropped shared.MetricsCounter) *ProtectedEngine {
+func NewProtectedEngine(core surgecore.Engine, threshold time.Duration, dropped shared.MetricsObserver) *ProtectedEngine {
 	return &ProtectedEngine{
 		core:  core,
 		guard: NewLatencyGuard(threshold, dropped),
@@ -27,9 +27,9 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 	}
 	accepted := p.core.Ingest(query)
 	if accepted {
-		p.guard.metrics.EventProcessedTotal("accepted")
+		p.guard.metrics.EventProcessed("accepted")
 	} else {
-		p.guard.metrics.EventProcessedTotal("dropped")
+		p.guard.metrics.EventProcessed("dropped")
 	}
 	return accepted
 }
