@@ -13,10 +13,10 @@ type LatencyGuard struct {
 	lastLatency time.Duration
 	dropRate    float64
 	threshold   time.Duration
-	metrics     shared.MetricsCounter
+	metrics     shared.MetricsObserver
 }
 
-func NewLatencyGuard(threshold time.Duration, metrics shared.MetricsCounter) *LatencyGuard {
+func NewLatencyGuard(threshold time.Duration, metrics shared.MetricsObserver) *LatencyGuard {
 	return &LatencyGuard{threshold: threshold, metrics: metrics}
 }
 
