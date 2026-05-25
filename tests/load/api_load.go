@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
-	"log"
 )
 
 const (

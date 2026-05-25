@@ -20,11 +20,11 @@ import (
 )
 
 const (
-	natsURL       = "nats://127.0.0.1:4222"
-	subject       = "search.events"
-	workers       = 20
-	targetRPS     = 5000
-	durationSecs  = 120
+	natsURL      = "nats://127.0.0.1:4222"
+	subject      = "search.events"
+	workers      = 20
+	targetRPS    = 5000
+	durationSecs = 120
 )
 
 type Event struct {
