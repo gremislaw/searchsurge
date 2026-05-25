@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	httpBase      = "http://localhost:8081"
-	natsURL       = "nats://localhost:4222"
-	subject       = "search.events"
+	httpBase = "http://localhost:8081"
+	natsURL  = "nats://localhost:4222"
+	subject  = "search.events"
 )
 
 func TestMain(m *testing.M) {
