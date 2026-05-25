@@ -20,7 +20,7 @@ type Config struct {
 	StaleThreshold   float64
 	LogLevel         string
 	PrometheusAddr   string
-	DebugAddr string
+	DebugAddr        string
 }
 
 func Load() Config {
@@ -38,7 +38,7 @@ func Load() Config {
 		StaleThreshold:   requireFloat("STALE_THRESHOLD"),
 		LogLevel:         os.Getenv("LOG_LEVEL"),
 		PrometheusAddr:   os.Getenv("PROMETHEUS_ADDR"),
-		DebugAddr:   	  os.Getenv("DEBUG_ADDR"),
+		DebugAddr:        os.Getenv("DEBUG_ADDR"),
 	}
 }
 
