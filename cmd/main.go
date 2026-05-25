@@ -26,8 +26,8 @@ import (
 	"searchsurge/internal/metrics"
 	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/resilience"
-	"searchsurge/internal/surgecore"
 	"searchsurge/internal/shared"
+	"searchsurge/internal/surgecore"
 )
 
 func main() {

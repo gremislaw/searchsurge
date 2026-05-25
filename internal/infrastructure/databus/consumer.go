@@ -9,8 +9,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"searchsurge/internal/surgecore"
 	"searchsurge/internal/shared"
+	"searchsurge/internal/surgecore"
 )
 
 type Config struct {
@@ -104,37 +104,59 @@ func (b *DataBus) handleMessage(msg jetstream.Msg) {
 	defer func() {
 		if r := recover(); r != nil {
 			b.logger.Error("handleMessage panic", "err", r)
-			if b.metrics != nil { b.metrics.EventProcessed("dropped") }
-			if err := msg.Nak(); err != nil { b.logger.Debug("nak failed", "err", err) }
+			if b.metrics != nil {
+				b.metrics.EventProcessed("dropped")
+			}
+			if err := msg.Nak(); err != nil {
+				b.logger.Debug("nak failed", "err", err)
+			}
 		}
 	}()
 
 	var evt Event
 	if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 		b.logger.Debug("parse error", "err", err)
-		if b.metrics != nil { b.metrics.IngestDropped("parse_error") }
-		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("parse_error")
+		}
+		if err := msg.Ack(); err != nil {
+			b.logger.Debug("ack failed", "err", err)
+		}
 		return
 	}
 
 	if evt.Query == "" || evt.IdempotencyKey == "" {
 		b.logger.Debug("empty field", "query", evt.Query, "key", evt.IdempotencyKey)
-		if b.metrics != nil { b.metrics.IngestDropped("empty") }
-		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("empty")
+		}
+		if err := msg.Ack(); err != nil {
+			b.logger.Debug("ack failed", "err", err)
+		}
 		return
 	}
 
 	if !b.checkAndMark(evt.IdempotencyKey) {
-		if b.metrics != nil { b.metrics.IngestDropped("idempotency") }
-		if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
+		if b.metrics != nil {
+			b.metrics.IngestDropped("idempotency")
+		}
+		if err := msg.Ack(); err != nil {
+			b.logger.Debug("ack failed", "err", err)
+		}
 		return
 	}
 
 	accepted := b.engine.Ingest(evt.Query)
 	if b.metrics != nil {
-		if accepted { b.metrics.EventProcessed("accepted") } else { b.metrics.EventProcessed("dropped") }
+		if accepted {
+			b.metrics.EventProcessed("accepted")
+		} else {
+			b.metrics.EventProcessed("dropped")
+		}
 	}
-	if err := msg.Ack(); err != nil { b.logger.Debug("ack failed", "err", err) }
+	if err := msg.Ack(); err != nil {
+		b.logger.Debug("ack failed", "err", err)
+	}
 }
 
 func (b *DataBus) checkAndMark(key string) bool {

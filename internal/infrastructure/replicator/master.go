@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"searchsurge/internal/infrastructure/databus"
-	"searchsurge/internal/surgecore"
 	"searchsurge/internal/shared"
+	"searchsurge/internal/surgecore"
 )
 
 type Master struct {

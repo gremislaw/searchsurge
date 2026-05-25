@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	
+
 	"searchsurge/internal/shared"
 )
 
