@@ -6,23 +6,6 @@ import (
 	"time"
 )
 
-type mockCounter struct {
-	mu    sync.Mutex
-	count int
-}
-
-func (m *mockCounter) Inc() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.count++
-}
-func (m *mockCounter) Add(float64) {}
-func (m *mockCounter) Count() int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.count
-}
-
 // Граничные значения латентности
 func TestLatencyGuard_BoundaryLatencies(t *testing.T) {
 	t.Parallel()

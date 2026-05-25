@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"searchsurge/internal/shared"
 )
 
 type LatencyGuard struct {
