@@ -55,7 +55,7 @@ services:
       - searchsurge-net
     deploy:
       resources:
-        limits: { memory: 256M, cpus: '0.5' }
+        limits: { memory: 1G, cpus: '1.0' }
     restart: unless-stopped
 
   searchsurge-slave:

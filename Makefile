@@ -58,13 +58,6 @@ proto-gen: proto-setup
 	  --grpc-gateway_out=internal/pb --grpc-gateway_opt=paths=source_relative \
 	  proto/api.proto
 
-bench:
-	@if ! command -v k6 >/dev/null 2>&1; then \
-		echo "k6 not found. Install: https://k6.io/docs/getting-started/installation/"; \
-		exit 1; \
-	fi
-	k6 run scripts/loadtest.js
-
 clean:
 	rm -rf googleapis
 	docker compose down -v --remove-orphans

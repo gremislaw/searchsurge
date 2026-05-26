@@ -335,29 +335,29 @@ type engine struct {
 
 ## Проверка требований ТЗ
 
-### ✅ Основные требования
+### Основные требования
 
 | Требование | Статус | Реализация |
 |------------|--------|------------|
-| Язык: Go | ✅ | Go 1.25 |
-| Брокер: Kafka/NATS/RabbitMQ | ✅ | NATS JetStream (`internal/infrastructure/databus/consumer.go`) |
-| API: HTTP/JSON или gRPC | ✅ | Оба варианта через gRPC-Gateway (`internal/api/`) |
-| No managed cloud solutions | ✅ | Только self-hosted  |
-| Highload оптимизация | ✅ | In-memory, lock-free структуры, кэширование JSON |
-| Консьюмер из брокера | ✅ | `databus.DataBus.Run()` |
-| Метод Top-N за 5 минут | ✅ | `/top?n={}` с exponential decay |
+| Язык: Go | + | Go 1.25 |
+| Брокер: Kafka/NATS/RabbitMQ | + | NATS JetStream (`internal/infrastructure/databus/consumer.go`) |
+| API: HTTP/JSON или gRPC | + | Оба варианта через gRPC-Gateway (`internal/api/`) |
+| No managed cloud solutions | + | Только self-hosted  |
+| Highload оптимизация | + | In-memory, lock-free структуры, кэширование JSON |
+| Консьюмер из брокера | + | `databus.DataBus.Run()` |
+| Метод Top-N за 5 минут | + | `/top?n={}` с exponential decay |
 
-### ✅ Дополнительные требования (плюсы)
+### Дополнительные требования (плюсы)
 
 | Требование | Статус | Реализация |
 |------------|--------|------------|
-| Динамический стоп-лист | ✅ | POST `/stoplist`, атомарная замена в runtime |
-| Нагрузочное тестирование | ✅ | `tests/load/`, `make load-http`, `make load-ingest` |
-| Мониторинг (Prometheus) | ✅ | Метрики в `internal/metrics/`, dashboard в Grafana `http://localhost:3000/` |
-| Unit-тесты | ✅ | `*_test.go` файлы в `internal/surgecore/`, `internal/resilience/` |
-| DX: быстрый локальный запуск | ✅ | `docker-compose.yml`, `Makefile` |
+| Динамический стоп-лист | + | POST `/stoplist`, атомарная замена в runtime |
+| Нагрузочное тестирование | + | `tests/load/`, `make load-http`, `make load-ingest` |
+| Мониторинг (Prometheus) | + | Метрики в `internal/metrics/`, dashboard в Grafana `http://localhost:3000/` |
+| Unit-тесты | + | `*_test.go` файлы в `internal/surgecore/`, `internal/resilience/` |
+| DX | + | `docker-compose.yml`, `Makefile` |
 
-### 📊 Результаты нагрузочного тестирования
+###  Результаты нагрузочного тестирования
 
 Запуск: `make load-http` (90 секунд, 100 конкуррентных запросов, tick 50ms)
 
@@ -432,10 +432,6 @@ make load-http
 # NATS ingest load test
 make load-ingest
 
-# k6 benchmark (требуется установленный k6)
-make bench
-```
-
 ---
 
 ## Структура проекта
@@ -469,4 +465,4 @@ make bench
 
 ## Лицензия
 
-Внутренняя разработка Wildberries. Все права защищены.
+Будущий разработчик Wildberries. Все права защищены.
