@@ -50,8 +50,8 @@ func main() {
 	}, logger)
 
 	// обёртка latency guard + circuit breaker
-	droppedMetric := metrics.IngestDroppedTotal.WithLabelValues("latency_guard")
-	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, droppedMetric)
+	var metrics shared.MetricsObserver = &shared.NoopMetricsObserver{}
+	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, metrics)
 
 	var provider api.TrendProvider
 	var busMetrics databus.MetricsObserver = mainMetrics{}

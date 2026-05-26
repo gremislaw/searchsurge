@@ -28,7 +28,7 @@ func (g *LatencyGuard) ShouldAdmit() bool {
 		g.dropRate = min(1.0, g.dropRate+0.1)
 		if rand.Float64() < g.dropRate {
 			if g.metrics != nil {
-				g.metrics.Inc()
+				g.metrics.IngestDropped("latency_guard")
 			}
 			return false
 		}

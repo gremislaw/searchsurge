@@ -1,6 +1,7 @@
 package resilience
 
 import (
+	"searchsurge/internal/shared"
 	"sync"
 	"testing"
 	"time"
@@ -83,7 +84,7 @@ func TestLatencyGuard_NilMetric(t *testing.T) {
 func TestLatencyGuard_Concurrency(t *testing.T) {
 	t.Parallel()
 
-	g := NewLatencyGuard(10*time.Millisecond, &mockCounter{})
+	g := NewLatencyGuard(10*time.Millisecond, &shared.NoopMetricsObserver{})
 	var wg sync.WaitGroup
 
 	for i := 0; i < 50; i++ {

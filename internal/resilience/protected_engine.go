@@ -27,9 +27,9 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 	}
 	accepted := p.core.Ingest(query)
 	if accepted {
-		p.guard.metrics.EventProcessed("accepted")
+		p.guard.metrics.EventProcessed(shared.LabelStatusAccepted)
 	} else {
-		p.guard.metrics.EventProcessed("dropped")
+		p.guard.metrics.EventProcessed(shared.LabelStatusDropped)
 	}
 	return accepted
 }

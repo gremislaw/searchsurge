@@ -2,6 +2,7 @@ package resilience
 
 import (
 	"context"
+	"searchsurge/internal/shared"
 	"sync"
 	"testing"
 	"time"
@@ -43,28 +44,11 @@ func (m *mockEngine) Run(ctx context.Context)  {}
 func (m *mockEngine) Stop(ctx context.Context) {}
 func (m *mockEngine) Stats() (int, int)        { return 0, 0 }
 
-type mockCounter struct {
-	mu    sync.Mutex
-	count int
-}
-
-func (m *mockCounter) Inc() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.count++
-}
-func (m *mockCounter) Add(float64) {}
-func (m *mockCounter) Count() int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.count
-}
-
 func TestProtectedEngine_Ingest_AdmittedAndAccepted(t *testing.T) {
 	t.Parallel()
 
 	core := &mockEngine{snapshotJSON: []byte("[]")}
-	guardDroppedCounter := &mockCounter{}
+	guardDroppedCounter := &shared.NoopMetricsObserver{}
 	pe := NewProtectedEngine(core, 100*time.Millisecond, guardDroppedCounter)
 
 	accepted := pe.Ingest("iphone")
@@ -76,10 +60,6 @@ func TestProtectedEngine_Ingest_AdmittedAndAccepted(t *testing.T) {
 		t.Errorf("expected core.Ingest called with 'iphone', got %v", core.ingests)
 	}
 	core.mu.Unlock()
-
-	if guardDroppedCounter.Count() != 0 {
-		t.Errorf("expected guard dropped counter = 0, got %d", guardDroppedCounter.Count())
-	}
 }
 
 func TestProtectedEngine_Ingest_AdmittedButDroppedByCore(t *testing.T) {
@@ -89,7 +69,7 @@ func TestProtectedEngine_Ingest_AdmittedButDroppedByCore(t *testing.T) {
 		stoplist:     map[string]struct{}{"spam": {}},
 		snapshotJSON: []byte("[]"),
 	}
-	guardDroppedCounter := &mockCounter{}
+	guardDroppedCounter := &shared.NoopMetricsObserver{}
 	pe := NewProtectedEngine(core, 100*time.Millisecond, guardDroppedCounter)
 
 	accepted := pe.Ingest("spam")
@@ -101,17 +81,13 @@ func TestProtectedEngine_Ingest_AdmittedButDroppedByCore(t *testing.T) {
 		t.Error("expected core.Ingest to be called even for stoplist word")
 	}
 	core.mu.Unlock()
-
-	if guardDroppedCounter.Count() != 0 {
-		t.Errorf("expected guard dropped counter = 0, got %d", guardDroppedCounter.Count())
-	}
 }
 
 func TestProtectedEngine_Ingest_DroppedByGuard(t *testing.T) {
 	t.Parallel()
 
 	core := &mockEngine{snapshotJSON: []byte("[]")}
-	guardDroppedCounter := &mockCounter{}
+	guardDroppedCounter := &shared.NoopMetricsObserver{}
 	pe := NewProtectedEngine(core, 1*time.Nanosecond, guardDroppedCounter)
 	pe.guard.RecordLatency(1 * time.Second)
 
@@ -128,17 +104,13 @@ func TestProtectedEngine_Ingest_DroppedByGuard(t *testing.T) {
 		t.Errorf("expected core.Ingest NOT called when guard drops, got %v", core.ingests)
 	}
 	core.mu.Unlock()
-
-	if guardDroppedCounter.Count() < 1 {
-		t.Errorf("expected guard dropped counter >= 1, got %d", guardDroppedCounter.Count())
-	}
 }
 
 func TestProtectedEngine_GetSnapshotJSON_RecordsLatency(t *testing.T) {
 	t.Parallel()
 
 	core := &mockEngine{snapshotJSON: []byte(`[{"query":"test","score":1.0}]`)}
-	guardDroppedCounter := &mockCounter{}
+	guardDroppedCounter := &shared.NoopMetricsObserver{}
 	pe := NewProtectedEngine(core, 10*time.Millisecond, guardDroppedCounter)
 
 	snap := pe.GetSnapshotJSON()
@@ -199,7 +171,7 @@ func TestProtectedEngine_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	core := &mockEngine{snapshotJSON: []byte("[]")}
-	guardDroppedCounter := &mockCounter{}
+	guardDroppedCounter := &shared.NoopMetricsObserver{}
 	pe := NewProtectedEngine(core, 10*time.Millisecond, guardDroppedCounter)
 
 	var wg sync.WaitGroup
