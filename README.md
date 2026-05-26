@@ -365,11 +365,13 @@ type engine struct {
 
 ```
 HTTP Load Test Results
-Duration:  1m30s
-RPS:       2000
-Success:   100%
-Latency:   p50 < 10ms | p95 < 50ms | p99 < 100ms
-SLO met: p95 < 50ms, p99 < 100ms
+Requests      [total, rate, throughput]         150000, 5000.03, 4999.94
+Duration      [total, attack, wait]             30s, 30s, 533.708µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  232.125µs, 686.893µs, 558.161µs, 989.81µs, 1.223ms, 2.088ms, 36.097ms
+Bytes In      [total, mean]                     1800000, 12.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:150000
 ```
 
 ```

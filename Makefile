@@ -2,7 +2,7 @@
 .PHONY: load-http load-ingest mixed
 
 BASE_URL      ?= http://localhost:80
-RATE_HTTP     ?= 2000
+RATE_HTTP     ?= 10000
 RATE_INGEST   ?= 1000
 RATE_MIX_READ ?= 8000
 RATE_MIX_WRITE?= 3000
@@ -47,14 +47,8 @@ load-http:
 	BASE_URL=$(BASE_URL) RATE=$(RATE_HTTP) DURATION=$(DURATION) TIMEOUT=$(TIMEOUT) ./tests/load/load-http.sh
 
 load-ingest:
-	@echo "==> Ingest load test: POST $(BASE_URL)/ingest"
-	chmod +x tests/load/load-ingest.sh
-	BASE_URL=$(BASE_URL) RATE=$(RATE_INGEST) DURATION=$(DURATION) TIMEOUT=$(TIMEOUT) ./tests/load/load-ingest.sh
-
-mixed:
-	@echo "==> Mixed load test (read + write)"
-	chmod +x tests/load/load-mixed.sh
-	BASE_URL=$(BASE_URL) RATE_READ=$(RATE_MIX_READ) RATE_WRITE=$(RATE_MIX_WRITE) DURATION=$(DURATION) TIMEOUT=$(TIMEOUT) ./tests/load/load-mixed.sh
+	@echo " Running NATS ingest load test (120s)..."
+	go run -tags=loadtest ./tests/load/ingest_load.go
 
 bench: load-http
 
