@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	natsURL         = "nats://127.0.0.1:4222"
-	subject         = "search.events"
-	defaultWorkers  = 20
-	defaultTargetRPS = 5000
-	defaultDurationSecs = 120
+	natsURL              = "nats://127.0.0.1:4222"
+	subject              = "search.events"
+	defaultWorkers       = 20
+	defaultTargetRPS     = 5000
+	defaultDurationSecs  = 120
 	defaultUniqueQueries = 5000
 )
 
