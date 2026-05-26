@@ -1,4 +1,13 @@
 .PHONY: up down build restart test test-race proto-gen proto-setup bench logs lint clean help
+.PHONY: load-http load-ingest mixed
+
+BASE_URL      ?= http://localhost:80
+RATE_HTTP     ?= 10000
+RATE_INGEST   ?= 1000
+RATE_MIX_READ ?= 8000
+RATE_MIX_WRITE?= 3000
+DURATION      ?= 30s
+TIMEOUT       ?= 5s
 
 up:
 	docker compose up -d
@@ -33,12 +42,15 @@ test-integration:
 	docker compose down
 
 load-http:
-	@echo " Running HTTP load test (90s)..."
-	go run -tags=loadtest ./tests/load/api_load.go
+	@echo "==> HTTP load test: GET $(BASE_URL)/top?n=10"
+	chmod +x tests/load/load-http.sh
+	BASE_URL=$(BASE_URL) RATE=$(RATE_HTTP) DURATION=$(DURATION) TIMEOUT=$(TIMEOUT) ./tests/load/load-http.sh
 
 load-ingest:
 	@echo " Running NATS ingest load test (120s)..."
 	go run -tags=loadtest ./tests/load/ingest_load.go
+
+bench: load-http
 
 lint:
 	golangci-lint run ./...
@@ -58,13 +70,6 @@ proto-gen: proto-setup
 	  --grpc-gateway_out=internal/pb --grpc-gateway_opt=paths=source_relative \
 	  proto/api.proto
 
-bench:
-	@if ! command -v k6 >/dev/null 2>&1; then \
-		echo "k6 not found. Install: https://k6.io/docs/getting-started/installation/"; \
-		exit 1; \
-	fi
-	k6 run scripts/loadtest.js
-
 clean:
 	rm -rf googleapis
 	docker compose down -v --remove-orphans
@@ -81,6 +86,9 @@ help:
 	@echo "  make test-race        - Run tests with -race detector"
 	@echo "  make lint             - Run golangci-lint"
 	@echo "  make proto-gen        - Generate protobuf Go code"
-	@echo "  make bench            - Run k6 load test"
+	@echo "  make load-http        - Run HTTP GET load test (Vegeta)"
+	@echo "  make load-ingest      - Run HTTP POST ingest load test (Vegeta)"
+	@echo "  make mixed            - Run combined read+write load test (Vegeta)"
+	@echo "  make bench            - Alias for load-http"
 	@echo "  make clean            - Remove generated files and volumes"
 	@echo "  make test-integration - Run integration tests"

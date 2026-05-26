@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/shared"
 )
 
@@ -27,13 +28,14 @@ type entry struct {
 }
 
 type engine struct {
-	cfg      Config
-	logger   shared.Logger
-	mu       sync.Mutex
-	entries  map[string]*entry
-	metrics  shared.MetricsObserver
-	stopList atomic.Pointer[map[string]struct{}]
-	snapJSON atomic.Pointer[[]byte]
+	cfg       Config
+	logger    shared.Logger
+	mu        sync.RWMutex
+	entries   map[string]*entry
+	metrics   shared.MetricsObserver
+	stopList  atomic.Pointer[map[string]struct{}]
+	snapJSON  atomic.Pointer[[]byte]
+	snapProto atomic.Pointer[pb.GetTopResponse]
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -43,6 +45,7 @@ type engine struct {
 type Engine interface {
 	Ingest(query string) bool
 	GetSnapshotJSON() []byte
+	GetSnapshotProto() *pb.GetTopResponse
 	UpdateStopList(words []string)
 	Run(ctx context.Context)
 	Stop(ctx context.Context)
@@ -139,6 +142,13 @@ func (e *engine) GetSnapshotJSON() []byte {
 	return []byte("[]")
 }
 
+func (e *engine) GetSnapshotProto() *pb.GetTopResponse {
+	if p := e.snapProto.Load(); p != nil {
+		return p
+	}
+	return &pb.GetTopResponse{}
+}
+
 func (e *engine) runAggregator(ctx context.Context) {
 	ticker := time.NewTicker(e.cfg.SnapshotInterval)
 	defer ticker.Stop()
@@ -154,45 +164,62 @@ func (e *engine) runAggregator(ctx context.Context) {
 }
 
 func (e *engine) buildSnapshot() {
+	lambda := math.Log(2) / (e.cfg.HalfLifeMinutes * 60.0)
+	now := time.Now()
+
+	// Быстрое копирование состояния под RLock
+	e.mu.RLock()
+	queries := make([]string, 0, len(e.entries))
+	scores := make([]float64, 0, len(e.entries))
+	lastUpds := make([]time.Time, 0, len(e.entries))
+	for q, ent := range e.entries {
+		queries = append(queries, q)
+		scores = append(scores, ent.score)
+		lastUpds = append(lastUpds, ent.lastUpd)
+	}
+	e.mu.RUnlock()
+
+	// Тяжёлые вычисления БЕЗ ЛОКА
+	type processed struct {
+		q       string
+		score   float64
+		lastUpd time.Time
+		isStale bool
+	}
+
 	type entrySnap struct {
 		q     string
 		score float64
 	}
 
+	processedEntries := make([]processed, 0, len(queries))
 	var snap []entrySnap
-	lambda := math.Log(2) / (e.cfg.HalfLifeMinutes * 60.0)
-	now := time.Now()
 
-	e.mu.Lock()
-	snap = make([]entrySnap, 0, len(e.entries))
-	for q, ent := range e.entries {
-		dt := now.Sub(ent.lastUpd).Seconds()
+	for i := range queries {
+		dt := now.Sub(lastUpds[i]).Seconds()
 		if dt < 0 {
 			dt = 0
 		}
-		currentScore := ent.score * math.Exp(-lambda*dt)
+		newScore := scores[i] * math.Exp(-lambda*dt)
+		isStale := newScore < e.cfg.StaleThreshold
 
-		if currentScore < e.cfg.StaleThreshold {
-			delete(e.entries, q)
-			continue
-		}
-		ent.score = currentScore
-		ent.lastUpd = now
+		processedEntries = append(processedEntries, processed{
+			q: queries[i], score: newScore, lastUpd: now, isStale: isStale,
+		})
 
-		if currentScore > 0.1 {
-			snap = append(snap, entrySnap{q: q, score: currentScore})
+		if !isStale && newScore > 0.1 {
+			snap = append(snap, entrySnap{q: queries[i], score: newScore})
 		}
 	}
-	e.mu.Unlock()
 
-	if e.metrics != nil {
-		e.metrics.SetActiveEntries(len(e.entries))
-	}
-
-	if len(snap) == 0 {
-		empty := []byte("[]")
-		e.snapJSON.Store(&empty)
-		return
+	sort.Slice(snap, func(i, j int) bool {
+		if snap[i].score == snap[j].score {
+			return snap[i].q < snap[j].q
+		}
+		return snap[i].score > snap[j].score
+	})
+	if len(snap) > e.cfg.MaxSnapshotSize {
+		snap = snap[:e.cfg.MaxSnapshotSize]
 	}
 
 	type item struct {
@@ -203,21 +230,31 @@ func (e *engine) buildSnapshot() {
 	for i, v := range snap {
 		items[i] = item{Query: v.q, Score: math.Round(v.score*100) / 100}
 	}
+	rawJSON, _ := json.Marshal(items)
 
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].Score == items[j].Score {
-			return items[i].Query < items[j].Query
+	protoItems := make([]*pb.TrendItem, len(snap))
+	for i, v := range snap {
+		protoItems[i] = &pb.TrendItem{Query: v.q, Score: v.score}
+	}
+
+	// Кратковременный Lock для применения изменений
+	e.mu.Lock()
+	for _, pe := range processedEntries {
+		if pe.isStale {
+			delete(e.entries, pe.q)
+		} else if old, ok := e.entries[pe.q]; ok {
+			if !old.lastUpd.After(pe.lastUpd) {
+				old.score = pe.score
+				old.lastUpd = pe.lastUpd
+			}
 		}
-		return items[i].Score > items[j].Score
-	})
-
-	if len(items) > e.cfg.MaxSnapshotSize {
-		items = items[:e.cfg.MaxSnapshotSize]
 	}
+	e.snapJSON.Store(&rawJSON)
+	e.snapProto.Store(&pb.GetTopResponse{Items: protoItems})
+	e.mu.Unlock()
 
-	raw, err := json.Marshal(items)
-	if err != nil {
-		return
+	if e.metrics != nil {
+		e.metrics.SetActiveEntries(len(e.entries))
+		e.metrics.SetTopSnapshotSize(len(snap))
 	}
-	e.snapJSON.Store(&raw)
 }

@@ -55,29 +55,13 @@ services:
       - searchsurge-net
     deploy:
       resources:
-        limits: { memory: 256M, cpus: '0.5' }
+        limits: { memory: 1G, cpus: '2.0' }
     restart: unless-stopped
 
-  searchsurge-slave:
+  x-slave-base: &slave-base
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - ROLE=slave
-      - MASTER_ADDR=searchsurge-master:9090
-      - HTTP_ADDR=:8080
-      - GRPC_ADDR=:9090
-      - BROKER_URL=nats://nats:4222
-      - BROKER_SUBJECT=search.events
-      - PROMETHEUS_ADDR=:9091
-      - HALF_LIFE_MIN=2.5
-      - SNAPSHOT_INTERVAL_MS=1500
-      - ANOMALY_CAP=500.0
-      - MAX_SNAPSHOT_SIZE=2000
-      - STALE_THRESHOLD=0.05
-      - LOG_LEVEL=info
-    ports:
-      - "8082:8080"
     depends_on:
       searchsurge-master: { condition: service_healthy }
     healthcheck:
@@ -92,6 +76,111 @@ services:
         limits: { memory: 256M, cpus: '0.5' }
     restart: unless-stopped
 
+  searchsurge-slave-1:
+    <<: *slave-base
+    container_name: searchsurge-slave-1
+    environment:
+      - ROLE=slave
+      - MASTER_ADDR=searchsurge-master:9090
+      - HTTP_ADDR=:8080
+      - GRPC_ADDR=:9090
+      - BROKER_URL=nats://nats:4222
+      - BROKER_SUBJECT=search.events
+      - PROMETHEUS_ADDR=:9091
+      - HALF_LIFE_MIN=2.5
+      - SNAPSHOT_INTERVAL_MS=1500
+      - ANOMALY_CAP=500.0
+      - MAX_SNAPSHOT_SIZE=2000
+      - STALE_THRESHOLD=0.05
+      - LOG_LEVEL=info
+      - SLAVE_ID=1
+    ports:
+      - "8082:8080"
+
+  searchsurge-slave-2:
+    <<: *slave-base
+    container_name: searchsurge-slave-2
+    environment:
+      - ROLE=slave
+      - MASTER_ADDR=searchsurge-master:9090
+      - HTTP_ADDR=:8080
+      - GRPC_ADDR=:9090
+      - BROKER_URL=nats://nats:4222
+      - BROKER_SUBJECT=search.events
+      - PROMETHEUS_ADDR=:9091
+      - HALF_LIFE_MIN=2.5
+      - SNAPSHOT_INTERVAL_MS=1500
+      - ANOMALY_CAP=500.0
+      - MAX_SNAPSHOT_SIZE=2000
+      - STALE_THRESHOLD=0.05
+      - LOG_LEVEL=info
+      - SLAVE_ID=2
+    ports:
+      - "8083:8080"
+
+  searchsurge-slave-3:
+    <<: *slave-base
+    container_name: searchsurge-slave-3
+    environment:
+      - ROLE=slave
+      - MASTER_ADDR=searchsurge-master:9090
+      - HTTP_ADDR=:8080
+      - GRPC_ADDR=:9090
+      - BROKER_URL=nats://nats:4222
+      - BROKER_SUBJECT=search.events
+      - PROMETHEUS_ADDR=:9091
+      - HALF_LIFE_MIN=2.5
+      - SNAPSHOT_INTERVAL_MS=1500
+      - ANOMALY_CAP=500.0
+      - MAX_SNAPSHOT_SIZE=2000
+      - STALE_THRESHOLD=0.05
+      - LOG_LEVEL=info
+      - SLAVE_ID=3
+    ports:
+      - "8084:8080"
+
+  searchsurge-slave-4:
+    <<: *slave-base
+    container_name: searchsurge-slave-4
+    environment:
+      - ROLE=slave
+      - MASTER_ADDR=searchsurge-master:9090
+      - HTTP_ADDR=:8080
+      - GRPC_ADDR=:9090
+      - BROKER_URL=nats://nats:4222
+      - BROKER_SUBJECT=search.events
+      - PROMETHEUS_ADDR=:9091
+      - HALF_LIFE_MIN=2.5
+      - SNAPSHOT_INTERVAL_MS=1500
+      - ANOMALY_CAP=500.0
+      - MAX_SNAPSHOT_SIZE=2000
+      - STALE_THRESHOLD=0.05
+      - LOG_LEVEL=info
+      - SLAVE_ID=4
+    ports:
+      - "8085:8080"
+
+  searchsurge-slave-5:
+    <<: *slave-base
+    container_name: searchsurge-slave-5
+    environment:
+      - ROLE=slave
+      - MASTER_ADDR=searchsurge-master:9090
+      - HTTP_ADDR=:8080
+      - GRPC_ADDR=:9090
+      - BROKER_URL=nats://nats:4222
+      - BROKER_SUBJECT=search.events
+      - PROMETHEUS_ADDR=:9091
+      - HALF_LIFE_MIN=2.5
+      - SNAPSHOT_INTERVAL_MS=1500
+      - ANOMALY_CAP=500.0
+      - MAX_SNAPSHOT_SIZE=2000
+      - STALE_THRESHOLD=0.05
+      - LOG_LEVEL=info
+      - SLAVE_ID=5
+    ports:
+      - "8086:8080"
+
   nginx:
     image: nginx:alpine
     container_name: searchsurge-nginx
@@ -102,7 +191,11 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - searchsurge-master
-      - searchsurge-slave
+      - searchsurge-slave-1
+      - searchsurge-slave-2
+      - searchsurge-slave-3
+      - searchsurge-slave-4
+      - searchsurge-slave-5
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 10s
@@ -111,7 +204,7 @@ services:
       - searchsurge-net
     deploy:
       resources:
-        limits: { memory: 128M, cpus: '0.25' }
+        limits: { memory: 512M, cpus: '2' }
     restart: unless-stopped
 
 

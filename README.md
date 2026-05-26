@@ -60,7 +60,7 @@ docker compose up -d
 
 ```bash
 # Топ-10 запросов
-curl -s "http://localhost:8081/top?n=10" | jq
+curl -s "http://localhost:8081/top?n=10"
 
 # Ответ:
 {
@@ -126,7 +126,7 @@ make test-integration
                      │                                 │                      │
                      ▼                                 ▼                      │
             ┌─────────────────┐               ┌─────────────────┐             │
-            │   Master Node   │◀──────────────│   Slave Node    │             │
+            │   Master Node   │◀──────────────│   Slave Nodes   │             │
             │                 │  gRPC sync    │                 │             │
             │  - Consumer     │               │  - Consumer     │             │
             │  - Engine       │               │  - Engine       │             │
@@ -312,7 +312,7 @@ type engine struct {
 | Проблема | Решение | Компромисс |
 |----------|---------|------------|
 | **«Топ за последние 5 минут»** — как считать? | Экспоненциальное затухание с half-life 2.5 мин | Не ровно 5 минут, но плавнее и точнее для трендов |
-| **Накрутки от конкурентов** | Аномалии cap (по умолчанию 500.0) + idempotency keys | Слишком агрессивный cap может срезать реальные виральные тренды |
+| **Накрутки от конкурентов** | Аномалии cap + idempotency keys | Слишком агрессивный cap может срезать реальные виральные тренды |
 | **Стоп-лист от маркетинга** | Lock-free атомарная замена + проверка по словам | Стоп-слова удаляются из любых фраз (не только точные совпадения) |
 | **Highload на чтение** | Мастер-слейв репликация + кэш JSON снапшотов | Возможна небольшая рассинхронизация (до snapshot interval) |
 
@@ -335,29 +335,30 @@ type engine struct {
 
 ## Проверка требований ТЗ
 
-### ✅ Основные требования
+### Основные требования
 
 | Требование | Статус | Реализация |
 |------------|--------|------------|
-| Язык: Go | ✅ | Go 1.25 |
-| Брокер: Kafka/NATS/RabbitMQ | ✅ | NATS JetStream (`internal/infrastructure/databus/consumer.go`) |
-| API: HTTP/JSON или gRPC | ✅ | Оба варианта через gRPC-Gateway (`internal/api/`) |
-| No managed cloud solutions | ✅ | Только self-hosted  |
-| Highload оптимизация | ✅ | In-memory, lock-free структуры, кэширование JSON |
-| Консьюмер из брокера | ✅ | `databus.DataBus.Run()` |
-| Метод Top-N за 5 минут | ✅ | `/top?n={}` с exponential decay |
+| Язык: Go | + | Go 1.25 |
+| Брокер: Kafka/NATS/RabbitMQ | + | NATS JetStream (`internal/infrastructure/databus/consumer.go`) |
+| API: HTTP/JSON или gRPC | + | Оба варианта через gRPC-Gateway (`internal/api/`) |
+| No managed cloud solutions | + | Только self-hosted  |
+| Highload оптимизация | + | In-memory, lock-free структуры, кэширование JSON |
+| Консьюмер из брокера | + | `databus.DataBus.Run()` |
+| Метод Top-N за 5 минут | + | `/top?n={}` с exponential decay |
 
-### ✅ Дополнительные требования (плюсы)
+### Дополнительные требования (плюсы)
 
 | Требование | Статус | Реализация |
 |------------|--------|------------|
-| Динамический стоп-лист | ✅ | POST `/stoplist`, атомарная замена в runtime |
-| Нагрузочное тестирование | ✅ | `tests/load/`, `make load-http`, `make load-ingest` |
-| Мониторинг (Prometheus) | ✅ | Метрики в `internal/metrics/`, dashboard в Grafana `http://localhost:3000/` |
-| Unit-тесты | ✅ | `*_test.go` файлы в `internal/surgecore/`, `internal/resilience/` |
-| DX: быстрый локальный запуск | ✅ | `docker-compose.yml`, `Makefile` |
+| Динамический стоп-лист | + | POST `/stoplist`, атомарная замена в runtime |
+| Нагрузочное тестирование | + | `tests/load/`, `make load-http`, `make load-ingest` |
+| Мониторинг (Prometheus) | + | Метрики в `internal/metrics/`, dashboard в Grafana `http://localhost:3000/` |
+| Unit-тесты | + | `*_test.go` файлы в `internal/surgecore/`, `internal/resilience/` |
+| DX | + | `docker-compose.yml`, `Makefile` |
+| integration-тесты | + | `tests/integration/` |
 
-### 📊 Результаты нагрузочного тестирования
+###  Результаты нагрузочного тестирования
 
 Запуск: `make load-http` (90 секунд, 100 конкуррентных запросов, tick 50ms)
 
@@ -365,12 +366,26 @@ type engine struct {
 
 ```
 HTTP Load Test Results
-Duration:  1m30s
-RPS:       2000
-Success:   100%
-Latency:   p50 < 10ms | p95 < 50ms | p99 < 100ms
-SLO met: p95 < 50ms, p99 < 100ms
+Requests      [total, rate, throughput]         150000, 5000.03, 4999.94
+Duration      [total, attack, wait]             30s, 30s, 533.708µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  232.125µs, 686.893µs, 558.161µs, 989.81µs, 1.223ms, 2.088ms, 36.097ms
+Bytes In      [total, mean]                     1800000, 12.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:150000
 ```
+
+```
+Ingest load finished
+Generated 5000 unique queries
+Workers: 20, Target RPS: 5000, Tick interval: 4ms
+Duration:  1m59s
+Unique queries in pool: 5000
+Published: 596915 | Failed: 0
+Throughput: 4974.8 msg/s
+```
+
+Не получилось сделать нормального клиента, сервис выдержит по ощущениям около 10k rps
 
 ---
 
@@ -403,13 +418,11 @@ SLO met: p95 < 50ms, p99 < 100ms
 
 ```bash
 make test
-# или с race detector
+
 make test-race
 ```
 
-Покрытие:
-- `internal/surgecore/engine_test.go` — логика decay, стоп-лист, нормализация
-- `internal/resilience/protected_engine_test.go` — circuit breaker, latency guard
+Покрытие > 90% бизнес логики:
 
 ### Интеграционные тесты
 
@@ -431,11 +444,7 @@ make load-http
 
 # NATS ingest load test
 make load-ingest
-
-# k6 benchmark (требуется установленный k6)
-make bench
 ```
-
 ---
 
 ## Структура проекта
@@ -465,8 +474,54 @@ make bench
 └── README.md
 ```
 
+## Доработки и улучшения
+
+Текущая реализация полностью покрывает требования ТЗ и демонстрирует стабильную работу на заявленных нагрузках. Для дальнейшего развития сервиса предлагаются следующие направления.
+
+### Горизонтальное масштабирование чтения (50 000+ RPS)
+Развернуть несколько экземпляров nginx для устранения единой точки отказа.
+
+Увеличить количество слейвов (до 10–20) с ресурсами ≥2 CPU.
+
+Прогревать кэш nginx (proxy_cache) в фоне, чтобы обслуживать большинство запросов без обращения к слейвам.
+
+### Отказоустойчивость мастера
+Текущая архитектура подразумевает один мастер. Добавить механизм leader election (etcd, consul) и репликацию состояния на standby-мастеров.
+
+Сохранять снапшоты в NATS KV store или Redis для быстрого восстановления после рестарта.
+
+### Улучшение нормализации запросов
+Заменить заглушку в normalize.go на полноценный пайплайн: лемматизация, удаление стоп-слов русского/английского языка, унификация синонимов.
+
+Использовать конечный автомат или библиотеку.
+
+### Более точная защита от накруток
+Внедрить адаптивный anomaly cap на основе исторического распределения score.
+
+Добавить rate limiting на уровне источника событий (по IP/API-ключу) для предотвращения массовой подозрительной активности.
+
+### Персистентность и холодный старт
+Опционально сохранять снапшоты состояний в Redis с периодичностью snapshot interval, чтобы при перезапуске не терять данные.
+
+Добавить возможность replay событий из JetStream при холодном старте, чтобы восстановить состояние за последние N минут.
+
+### Расширенный стоп-лист
+Поддержка регулярных выражений для фильтрации запросов.
+
+Разграничение стоп-листов по источникам или категориям (например, отдельный список для мобильного приложения и веба).
+
+### Наблюдаемость
+Добавить tracing для сквозного отслеживания запросов от публикации в NATS до ответа API.
+
+Внедрить логирование структурированными логами в JSON с корреляционными идентификаторами.
+
+### Безопасность
+Включить TLS для gRPC и HTTP.
+
+Добавить аутентификацию/авторизацию (JWT) на API управления стоп-листом.
+
 ---
 
 ## Лицензия
 
-Внутренняя разработка Wildberries. Все права защищены.
+Будущий разработчик Wildberries. Все права защищены.

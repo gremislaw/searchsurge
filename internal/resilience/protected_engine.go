@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/shared"
 	"searchsurge/internal/surgecore"
 )
@@ -45,6 +46,7 @@ func (p *ProtectedEngine) GetSnapshotJSON() []byte {
 	return snap
 }
 
-func (p *ProtectedEngine) UpdateStopList(words []string) { p.core.UpdateStopList(words) }
-func (p *ProtectedEngine) Run(ctx context.Context)       { p.core.Run(ctx) }
-func (p *ProtectedEngine) Stop(ctx context.Context)      { p.core.Stop(ctx) }
+func (p *ProtectedEngine) GetSnapshotProto() *pb.GetTopResponse { return p.core.GetSnapshotProto() }
+func (p *ProtectedEngine) UpdateStopList(words []string)        { p.core.UpdateStopList(words) }
+func (p *ProtectedEngine) Run(ctx context.Context)              { p.core.Run(ctx) }
+func (p *ProtectedEngine) Stop(ctx context.Context)             { p.core.Stop(ctx) }
