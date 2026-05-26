@@ -16,4 +16,8 @@ const (
 	AckWait                 = 30 * time.Second
 	IdleTimeout             = 2 * time.Minute
 	EventMaxAge             = 10 * time.Minute
+
+	LabelStatusAccepted = "accepted"
+	LabelStatusDropped  = "dropped"
+	LabelReasonStoplist = "stoplist"
 )

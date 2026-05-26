@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"searchsurge/internal/shared"
 )
 
 func testConfig() Config {
@@ -26,7 +28,7 @@ func testConfig() Config {
 func TestEngine_Ingest_NewQuery(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 	e.Run(context.Background())
 	defer e.Stop(context.Background())
 
@@ -51,7 +53,7 @@ func TestEngine_Ingest_Decay(t *testing.T) {
 	t.Cleanup(resetIntents)
 	cfg := testConfig()
 	cfg.HalfLifeMinutes = 0.1
-	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	e.Ingest("iphone")
 	e.Ingest("iphone")
@@ -86,7 +88,7 @@ func TestEngine_Ingest_AnomalyCap(t *testing.T) {
 	t.Cleanup(resetIntents)
 	cfg := testConfig()
 	cfg.AnomalyCap = 5.0
-	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	for i := 0; i < 100; i++ {
 		e.Ingest("iphone")
@@ -104,7 +106,7 @@ func TestEngine_Ingest_AnomalyCap(t *testing.T) {
 func TestEngine_Stoplist_Filtering(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 	e.UpdateStopList([]string{"spam", "promo"})
 
 	if e.Ingest("spam") {
@@ -125,7 +127,7 @@ func TestEngine_BuildSnapshot_SortingAndCapping(t *testing.T) {
 	t.Cleanup(resetIntents)
 	cfg := testConfig()
 	cfg.MaxSnapshotSize = 3
-	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	e.Ingest("zebra")
 	e.Ingest("zebra")
@@ -164,7 +166,7 @@ func TestEngine_BuildSnapshot_StalePruning(t *testing.T) {
 	cfg := testConfig()
 	cfg.HalfLifeMinutes = 0.01
 	cfg.StaleThreshold = 0.5
-	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(cfg, slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	e.Ingest("fresh")
 	e.Ingest("fresh")
@@ -204,7 +206,7 @@ func TestEngine_BuildSnapshot_StalePruning(t *testing.T) {
 func TestEngine_NormalizeQuery_Integration(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	e.Ingest("купить айфон")
 	e.Ingest("айфон")
@@ -234,7 +236,7 @@ func TestEngine_NormalizeQuery_Integration(t *testing.T) {
 func TestEngine_GetSnapshotJSON_Concurrency(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 	e.Run(context.Background())
 	defer e.Stop(context.Background())
 
@@ -255,7 +257,7 @@ func TestEngine_GetSnapshotJSON_Concurrency(t *testing.T) {
 func TestEngine_RunStop_Lifecycle(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
@@ -277,7 +279,7 @@ func TestEngine_RunStop_Lifecycle(t *testing.T) {
 func TestEngine_EmptySnapshot(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	if string(e.GetSnapshotJSON()) != "[]" {
 		t.Errorf("expected empty snapshot")
@@ -287,7 +289,7 @@ func TestEngine_EmptySnapshot(t *testing.T) {
 func TestEngine_NilStopList(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	if e.isStopWord("anything") {
 		t.Error("expected no words stopped before UpdateStopList")
@@ -297,7 +299,7 @@ func TestEngine_NilStopList(t *testing.T) {
 func TestEngine_UpdateStopList_Concurrency(t *testing.T) {
 	resetIntents()
 	t.Cleanup(resetIntents)
-	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil))).(*engine)
+	e := New(testConfig(), slog.New(slog.NewTextHandler(os.Stderr, nil)), shared.NoopMetricsObserver{}).(*engine)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {

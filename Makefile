@@ -32,6 +32,14 @@ test-integration:
 	@echo "Cleaning up..."
 	docker compose down
 
+load-http:
+	@echo " Running HTTP load test (90s)..."
+	go run -tags=loadtest ./tests/load/api_load.go
+
+load-ingest:
+	@echo " Running NATS ingest load test (120s)..."
+	go run -tags=loadtest ./tests/load/ingest_load.go
+
 lint:
 	golangci-lint run ./...
 
