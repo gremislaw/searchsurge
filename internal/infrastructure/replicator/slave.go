@@ -2,6 +2,7 @@ package replicator
 
 import (
 	"context"
+	"encoding/json"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +16,7 @@ type Slave struct {
 	masterAddr string
 	client     pb.TrendServiceClient
 	snap       atomic.Pointer[[]byte]
+	snapProto  atomic.Pointer[pb.GetTopResponse]
 	logger     shared.Logger
 }
 
@@ -64,6 +66,11 @@ func (s *Slave) consume(ctx context.Context, stream pb.TrendService_StreamTopCli
 			return
 		}
 		s.snap.Store(&snap.JsonPayload)
+
+		var items []*pb.TrendItem
+		if err := json.Unmarshal(snap.JsonPayload, &items); err == nil {
+			s.snapProto.Store(&pb.GetTopResponse{Items: items})
+		}
 	}
 }
 
@@ -74,6 +81,13 @@ func (s *Slave) GetSnapshotJSON() []byte {
 		return *b
 	}
 	return []byte("[]")
+}
+
+func (s *Slave) GetSnapshotProto() *pb.GetTopResponse {
+	if p := s.snapProto.Load(); p != nil {
+		return p
+	}
+	return &pb.GetTopResponse{}
 }
 
 func (s *Slave) UpdateStopList([]string) {}

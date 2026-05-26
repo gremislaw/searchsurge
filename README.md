@@ -60,7 +60,7 @@ docker compose up -d
 
 ```bash
 # Топ-10 запросов
-curl -s "http://localhost:8081/top?n=10" | jq
+curl -s "http://localhost:8081/top?n=10"
 
 # Ответ:
 {
@@ -372,6 +372,16 @@ Latency:   p50 < 10ms | p95 < 50ms | p99 < 100ms
 SLO met: p95 < 50ms, p99 < 100ms
 ```
 
+```
+Ingest load finished
+Generated 5000 unique queries
+Workers: 20, Target RPS: 5000, Tick interval: 4ms
+Duration:  1m59s
+Unique queries in pool: 5000
+Published: 596915 | Failed: 0
+Throughput: 4974.8 msg/s
+```
+
 ---
 
 ## Мониторинг
@@ -403,13 +413,11 @@ SLO met: p95 < 50ms, p99 < 100ms
 
 ```bash
 make test
-# или с race detector
+
 make test-race
 ```
 
-Покрытие:
-- `internal/surgecore/engine_test.go` — логика decay, стоп-лист, нормализация
-- `internal/resilience/protected_engine_test.go` — circuit breaker, latency guard
+Покрытие > 90% бизнес логики:
 
 ### Интеграционные тесты
 

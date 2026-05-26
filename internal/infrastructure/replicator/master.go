@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"searchsurge/internal/infrastructure/databus"
+	pb "searchsurge/internal/pb/proto"
 	"searchsurge/internal/shared"
 	"searchsurge/internal/surgecore"
 )
@@ -31,14 +32,7 @@ func (m *Master) Run(ctx context.Context) {
 	}()
 }
 
-func (m *Master) Stop(ctx context.Context) {
-	m.engine.Stop(ctx)
-}
-
-func (m *Master) GetSnapshotJSON() []byte {
-	return m.engine.GetSnapshotJSON()
-}
-
-func (m *Master) UpdateStopList(words []string) {
-	m.engine.UpdateStopList(words)
-}
+func (m *Master) Stop(ctx context.Context)             { m.engine.Stop(ctx) }
+func (m *Master) GetSnapshotJSON() []byte              { return m.engine.GetSnapshotJSON() }
+func (m *Master) GetSnapshotProto() *pb.GetTopResponse { return m.engine.GetSnapshotProto() }
+func (m *Master) UpdateStopList(words []string)        { m.engine.UpdateStopList(words) }

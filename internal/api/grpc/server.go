@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"google.golang.org/grpc"
@@ -26,14 +25,9 @@ func NewServer(provider api.TrendProvider) *Server {
 func (s *Server) Register(grpcSrv *grpc.Server) { pb.RegisterTrendServiceServer(grpcSrv, s) }
 
 func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
-	rawJSON := s.provider.GetSnapshotJSON()
-	if string(rawJSON) == "[]" {
+	resp := s.provider.GetSnapshotProto()
+	if resp == nil {
 		return &pb.GetTopResponse{}, nil
-	}
-
-	var items []*pb.TrendItem
-	if err := json.Unmarshal(rawJSON, &items); err != nil {
-		return nil, status.Errorf(codes.Internal, "snapshot parse error: %v", err)
 	}
 
 	limit := int(req.GetN())
@@ -44,11 +38,11 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 		limit = shared.MaxLimit
 	}
 
-	if len(items) > limit {
-		items = items[:limit]
+	if limit < len(resp.Items) {
+		return &pb.GetTopResponse{Items: resp.Items[:limit]}, nil
 	}
 
-	return &pb.GetTopResponse{Items: items}, nil
+	return resp, nil
 }
 
 func (s *Server) UpdateStoplist(ctx context.Context, req *pb.StoplistRequest) (*pb.StoplistResponse, error) {

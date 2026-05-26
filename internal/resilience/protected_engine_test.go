@@ -6,13 +6,16 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	pb "searchsurge/internal/pb/proto"
 )
 
 type mockEngine struct {
-	mu           sync.Mutex
-	ingests      []string
-	stoplist     map[string]struct{}
-	snapshotJSON []byte
+	mu            sync.Mutex
+	ingests       []string
+	stoplist      map[string]struct{}
+	snapshotJSON  []byte
+	snapshotProto *pb.GetTopResponse
 }
 
 func (m *mockEngine) Ingest(query string) bool {
@@ -27,6 +30,12 @@ func (m *mockEngine) GetSnapshotJSON() []byte {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.snapshotJSON
+}
+
+func (m *mockEngine) GetSnapshotProto() *pb.GetTopResponse {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.snapshotProto
 }
 
 func (m *mockEngine) UpdateStopList(words []string) {

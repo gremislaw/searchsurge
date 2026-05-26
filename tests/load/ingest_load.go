@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -20,11 +21,12 @@ import (
 )
 
 const (
-	natsURL      = "nats://127.0.0.1:4222"
-	subject      = "search.events"
-	workers      = 20
-	targetRPS    = 5000
-	durationSecs = 120
+	natsURL         = "nats://127.0.0.1:4222"
+	subject         = "search.events"
+	defaultWorkers  = 20
+	defaultTargetRPS = 5000
+	defaultDurationSecs = 120
+	defaultUniqueQueries = 5000
 )
 
 type Event struct {
@@ -33,14 +35,46 @@ type Event struct {
 	Ts             int64  `json:"ts"`
 }
 
-var queries = []string{
-	"купить iphone", "samsung galaxy", "airpods pro", "macbook air",
-	"чехол айфон", "xiaomi redmi", "ноутбук gaming", "презики", "самса",
-	"ipad mini", "apple watch", "google pixel", "huawei p60", "oneplus 12",
-	"найти телефон", "дешевый планшет", "обзор ноутбука", "подобрать наушники",
+func generateQueryPool(count int) []string {
+	templates := []string{
+		"купить %s", "заказать %s", "цена %s", "обзор %s",
+		"%s отзывы", "%s характеристики", "где купить %s", "%s доставка",
+	}
+	products := []string{
+		"iphone", "samsung", "xiaomi", "huawei", "oneplus", "google pixel",
+		"macbook", "airpods", "ipad", "apple watch", "redmi", "poco",
+		"ноутбук", "планшет", "наушники", "часы", "монитор", "клавиатура",
+		"мышь", "вебкамера", "микрофон", "колонки", "роутер", "видеокарта",
+	}
+
+	queries := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		tmpl := templates[i%len(templates)]
+		prod := products[rand.Intn(len(products))]
+		suffix := ""
+		if i >= len(products)*len(templates) {
+			suffix = fmt.Sprintf("-%d", i/100)
+		}
+		queries = append(queries, fmt.Sprintf(tmpl, prod+suffix))
+	}
+	return queries
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return defaultValue
 }
 
 func main() {
+	workers := getEnvInt("WORKERS", defaultWorkers)
+	targetRPS := getEnvInt("TARGET_RPS", defaultTargetRPS)
+	durationSecs := getEnvInt("DURATION_SECS", defaultDurationSecs)
+	uniqueQueries := getEnvInt("UNIQUE_QUERIES", defaultUniqueQueries)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(durationSecs)*time.Second)
 	defer cancel()
 
@@ -58,10 +92,14 @@ func main() {
 	}
 	defer nc.Close()
 
+	queries := generateQueryPool(uniqueQueries)
+	log.Printf("Generated %d unique queries", len(queries))
+
 	var pub, fail int64
 	start := time.Now()
 
 	tickInterval := time.Duration(int64(time.Second) * int64(workers) / int64(targetRPS))
+	log.Printf("Workers: %d, Target RPS: %d, Tick interval: %v", workers, targetRPS, tickInterval)
 
 	var wg sync.WaitGroup
 	for w := 0; w < workers; w++ {
@@ -78,7 +116,7 @@ func main() {
 					return
 				case <-ticker.C:
 					q := queries[rng.Intn(len(queries))]
-					key := fmt.Sprintf("load-%d-%d", time.Now().UnixNano(), id)
+					key := fmt.Sprintf("load-%d-%d-%d", time.Now().UnixNano(), id, rng.Intn(10000))
 					data, err := json.Marshal(Event{Query: q, IdempotencyKey: key, Ts: time.Now().UnixMilli()})
 					if err != nil {
 						atomic.AddInt64(&fail, 1)
@@ -102,6 +140,7 @@ func main() {
 
 	fmt.Printf("\nIngest load finished\n")
 	fmt.Printf("Duration:  %s\n", elapsed.Truncate(time.Second))
+	fmt.Printf("Unique queries in pool: %d\n", uniqueQueries)
 	fmt.Printf("Published: %d | Failed: %d\n", p, f)
 	fmt.Printf("Throughput: %.1f msg/s\n", float64(p)/elapsed.Seconds())
 }

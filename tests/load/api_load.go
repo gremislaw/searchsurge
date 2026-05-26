@@ -23,7 +23,7 @@ import (
 const (
 	defaultBaseURL     = "http://127.0.0.1:8081"
 	defaultDurationSec = 90
-	defaultConcurrency = 100
+	defaultConcurrency = 500
 	defaultTickRateMs  = 50
 	defaultTimeoutSec  = 5
 	warmupTimeoutSec   = 30
