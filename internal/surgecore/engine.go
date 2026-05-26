@@ -31,6 +31,7 @@ type engine struct {
 	logger   shared.Logger
 	mu       sync.Mutex
 	entries  map[string]*entry
+	metrics  shared.MetricsObserver
 	stopList atomic.Pointer[map[string]struct{}]
 	snapJSON atomic.Pointer[[]byte]
 
@@ -47,11 +48,12 @@ type Engine interface {
 	Stop(ctx context.Context)
 }
 
-func New(cfg Config, logger shared.Logger) Engine {
+func New(cfg Config, logger shared.Logger, metrics shared.MetricsObserver) Engine {
 	return &engine{
 		cfg:     cfg,
 		logger:  logger,
 		entries: make(map[string]*entry, 4096),
+		metrics: metrics,
 	}
 }
 
@@ -182,6 +184,10 @@ func (e *engine) buildSnapshot() {
 		}
 	}
 	e.mu.Unlock()
+
+	if e.metrics != nil {
+		e.metrics.SetActiveEntries(len(e.entries))
+	}
 
 	if len(snap) == 0 {
 		empty := []byte("[]")

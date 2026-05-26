@@ -14,7 +14,7 @@ type Master struct {
 	logger shared.Logger
 }
 
-func NewMaster(engine surgecore.Engine, busCfg databus.Config, logger shared.Logger, metrics databus.MetricsObserver) *Master {
+func NewMaster(engine surgecore.Engine, busCfg databus.Config, logger shared.Logger, metrics shared.MetricsObserver) *Master {
 	return &Master{
 		engine: engine,
 		bus:    databus.New(busCfg, engine, logger, metrics),

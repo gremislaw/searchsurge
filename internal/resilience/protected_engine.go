@@ -26,10 +26,13 @@ func (p *ProtectedEngine) Ingest(query string) bool {
 		return false
 	}
 	accepted := p.core.Ingest(query)
-	if accepted {
-		p.guard.metrics.EventProcessed(shared.LabelStatusAccepted)
-	} else {
-		p.guard.metrics.EventProcessed(shared.LabelStatusDropped)
+
+	if p.guard.metrics != nil {
+		if accepted {
+			p.guard.metrics.EventProcessed(shared.LabelStatusAccepted)
+		} else {
+			p.guard.metrics.EventProcessed(shared.LabelStatusDropped)
+		}
 	}
 	return accepted
 }

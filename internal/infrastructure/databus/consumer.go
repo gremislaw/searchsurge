@@ -28,21 +28,16 @@ type Event struct {
 	Ts             int64  `json:"ts"`
 }
 
-type MetricsObserver interface {
-	EventProcessed(status string)
-	IngestDropped(reason string)
-}
-
 type DataBus struct {
 	cfg      Config
 	engine   surgecore.Engine
 	logger   shared.Logger
-	metrics  MetricsObserver
+	metrics  shared.MetricsObserver
 	mu       sync.Mutex
 	seenKeys map[string]time.Time
 }
 
-func New(cfg Config, engine surgecore.Engine, logger shared.Logger, metrics MetricsObserver) *DataBus {
+func New(cfg Config, engine surgecore.Engine, logger shared.Logger, metrics shared.MetricsObserver) *DataBus {
 	return &DataBus{
 		cfg: cfg, engine: engine, logger: logger, metrics: metrics,
 		seenKeys: make(map[string]time.Time, 4096),

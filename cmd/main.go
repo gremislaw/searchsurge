@@ -35,6 +35,7 @@ import (
 func main() {
 	cfg := config.Load()
 	logger := initLogger(cfg.LogLevel)
+	obs := metrics.NewPrometheusObserver()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -47,14 +48,12 @@ func main() {
 		MaxSnapshotSize:  cfg.MaxSnapshotSize,
 		AnomalyCap:       cfg.AnomalyCap,
 		StaleThreshold:   cfg.StaleThreshold,
-	}, logger)
+	}, logger, obs)
 
 	// обёртка latency guard + circuit breaker
-	var metrics shared.MetricsObserver = &shared.NoopMetricsObserver{}
-	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, metrics)
+	engine := resilience.NewProtectedEngine(core, 15*time.Millisecond, obs)
 
 	var provider api.TrendProvider
-	var busMetrics databus.MetricsObserver = mainMetrics{}
 
 	if cfg.Role == "master" {
 		busCfg := databus.Config{
@@ -65,7 +64,7 @@ func main() {
 			IdempotencyTTL: shared.IdempotencyTTL,
 			AckWait:        shared.AckWait,
 		}
-		master := replicator.NewMaster(engine, busCfg, logger, busMetrics)
+		master := replicator.NewMaster(engine, busCfg, logger, obs)
 		master.Run(ctx)
 		provider = master
 		logger.Info("node started as master")
@@ -141,8 +140,8 @@ func main() {
 	debugSrv := &http.Server{
 		Addr:         cfg.DebugAddr,
 		Handler:      http.DefaultServeMux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  shared.ReadTimeout,
+		WriteTimeout: shared.WriteTimeout,
 	}
 	go func() {
 		logger.Info("debug/pprof started", "addr", cfg.DebugAddr)
@@ -183,14 +182,4 @@ func initLogger(level string) shared.Logger {
 		lvl = slog.LevelInfo
 	}
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl}))
-}
-
-type mainMetrics struct{}
-
-func (m mainMetrics) EventProcessed(status string) {
-	metrics.EventsProcessedTotal.WithLabelValues(status).Inc()
-}
-
-func (m mainMetrics) IngestDropped(reason string) {
-	metrics.IngestDroppedTotal.WithLabelValues(reason).Inc()
 }

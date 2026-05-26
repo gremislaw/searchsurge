@@ -6,11 +6,18 @@ import (
 
 var (
 	EventsProcessedTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{Name: "searchsurge_events_processed_total", Help: "Total events handled"},
+		prometheus.CounterOpts{
+			Name: "searchsurge_events_processed_total",
+			Help: "Total events processed, labeled by status",
+		},
 		[]string{"status"}, // accepted, dropped
 	)
+
 	IngestDroppedTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{Name: "searchsurge_ingest_dropped_total", Help: "Events dropped at ingest"},
+		prometheus.CounterOpts{
+			Name: "searchsurge_ingest_dropped_total",
+			Help: "Events dropped at ingress",
+		},
 		[]string{"reason"}, // stoplist, empty, latency_guard, idempotency
 	)
 
@@ -23,24 +30,43 @@ var (
 	)
 
 	ActiveEntries = prometheus.NewGauge(
-		prometheus.GaugeOpts{Name: "searchsurge_active_entries", Help: "Unique queries in memory"},
+		prometheus.GaugeOpts{
+			Name: "searchsurge_active_entries",
+			Help: "Unique queries currently in memory",
+		},
 	)
+
 	TopSnapshotSize = prometheus.NewGauge(
-		prometheus.GaugeOpts{Name: "searchsurge_top_snapshot_size", Help: "Items in last rendered snapshot"},
+		prometheus.GaugeOpts{
+			Name: "searchsurge_top_snapshot_size",
+			Help: "Items in last rendered snapshot",
+		},
 	)
 
 	NATSConsumerLag = prometheus.NewGauge(
-		prometheus.GaugeOpts{Name: "searchsurge_nats_consumer_lag", Help: "Pending messages in stream"},
+		prometheus.GaugeOpts{
+			Name: "searchsurge_nats_consumer_lag",
+			Help: "Pending messages in stream",
+		},
 	)
+
 	ReplicationStreamStatus = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{Name: "searchsurge_replication_stream_status", Help: "1=connected, 0=disconnected"},
+		prometheus.GaugeOpts{
+			Name: "searchsurge_replication_stream_status",
+			Help: "1=connected, 0=disconnected",
+		},
 		[]string{"role"},
 	)
 )
 
 func Register(r prometheus.Registerer) {
 	r.MustRegister(
-		EventsProcessedTotal, IngestDroppedTotal, SnapshotLatencySeconds,
-		ActiveEntries, TopSnapshotSize, NATSConsumerLag, ReplicationStreamStatus,
+		EventsProcessedTotal,
+		IngestDroppedTotal,
+		SnapshotLatencySeconds,
+		ActiveEntries,
+		TopSnapshotSize,
+		NATSConsumerLag,
+		ReplicationStreamStatus,
 	)
 }

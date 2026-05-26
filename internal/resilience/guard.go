@@ -42,6 +42,9 @@ func (g *LatencyGuard) ShouldAdmit() bool {
 
 func (g *LatencyGuard) RecordLatency(d time.Duration) {
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	g.lastLatency = d
-	g.mu.Unlock()
+	if g.metrics != nil {
+		g.metrics.ObserveSnapshotLatency(d)
+	}
 }
